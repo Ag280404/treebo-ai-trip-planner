@@ -408,8 +408,13 @@ export default function App() {
         },
         plan
       )
-        .then(() => loadTrips().then(setSavedTrips))
-        .catch(console.error);
+        .then((id) => {
+          console.log('[Firebase] Trip saved successfully, id:', id);
+          return loadTrips().then(setSavedTrips);
+        })
+        .catch((err) => {
+          console.error('[Firebase] Save failed:', err?.code, err?.message, err);
+        });
     } catch (err: any) {
       console.error(err);
       setError(`Failed to generate plan: ${err?.message || 'Unknown error. Check console for details.'}`);
