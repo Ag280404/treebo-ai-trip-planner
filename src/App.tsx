@@ -335,7 +335,7 @@ export default function App() {
     try {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY! });
       const model = ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: `You are Treebo's AI Trip Planner. Generate a detailed, day-by-day travel itinerary in JSON format based on the trip details provided. Include morning, afternoon, and evening activities. Each activity must have: name, emoji, description (1 sentence), duration_hours (number), cost_inr (number), distance_from_hotel_km (number). Also include a trip_summary with destination, total_estimated_cost_inr, top_tip, and vibe_tags (array). Return ONLY valid JSON, no markdown blocks.`,
         contents: [{
           role: 'user',
@@ -411,7 +411,7 @@ export default function App() {
       }));
 
       const chat = ai.chats.create({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         history: history,
         config: {
           systemInstruction: `You are Treebo's friendly travel assistant. The user is planning a trip to ${tripDetails.destination} from ${tripDetails.checkIn} to ${tripDetails.checkOut}. They are interested in a Treebo hotel (budget: ₹${tripDetails.budget}/night). Be concise, warm, practical. Mention Treebo hotel amenities (Free WiFi, AC, Breakfast, Assured quality) where relevant. Never recommend competitor hotels.`,
