@@ -38,6 +38,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 // API calls are proxied through Vercel serverless functions
 import { saveTrip, loadTrips, type SavedTrip } from './tripStore';
+import { auth } from './firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import {
   APIProvider,
   Map,
@@ -190,7 +192,7 @@ const MOCK_HOTELS: HotelData[] = [
 
 // --- Components ---
 
-const Header = () => (
+const Header = ({ user, onSignOut }: { user: User | null, onSignOut: () => void }) => (
   <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/95 backdrop-blur-sm border-b border-treebo-border px-5 py-2.5 flex justify-between items-center">
     <div className="flex items-center gap-2">
       <img src="/treebo-icon.svg" alt="Treebo" className="w-9 h-9" />
@@ -199,9 +201,21 @@ const Header = () => (
         <span className="text-[10px] text-treebo-muted font-sans font-light tracking-wide leading-none">ai planner</span>
       </div>
     </div>
-    <div className="w-8 h-8 rounded-full bg-treebo-tag border border-treebo-border flex items-center justify-center">
-      <User size={14} className="text-treebo-muted" />
-    </div>
+    {user ? (
+      <button onClick={onSignOut} className="flex items-center gap-2 group">
+        {user.photoURL ? (
+          <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full border-2 border-treebo-teal/30" />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-treebo-teal text-white flex items-center justify-center text-[12px] font-semibold">
+            {user.displayName?.[0] || 'U'}
+          </div>
+        )}
+      </button>
+    ) : (
+      <div className="w-8 h-8 rounded-full bg-treebo-tag border border-treebo-border flex items-center justify-center">
+        <User size={14} className="text-treebo-muted" />
+      </div>
+    )}
   </header>
 );
 
@@ -340,6 +354,8 @@ export default function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
   const [tripsLoading, setTripsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -355,27 +371,36 @@ export default function App() {
   }, [chatHistory, isTyping]);
 
   useEffect(() => {
-    setTripsLoading(true);
-    loadTrips()
-      .then((trips) => {
-        setSavedTrips(trips);
-        // Auto-load most recent trip so itinerary tab always has content
-        if (trips.length > 0 && !generatedPlan) {
-          const latest = trips[0];
-          setGeneratedPlan(latest.plan as TripPlan);
-          setTripDetails({
-            destination: latest.destination,
-            checkIn: latest.checkIn,
-            checkOut: latest.checkOut,
-            guests: latest.guests,
-            tripType: latest.tripType,
-            budget: latest.budget,
-            vibe: latest.vibe,
-          });
-        }
-      })
-      .catch(console.error)
-      .finally(() => setTripsLoading(false));
+    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthLoading(false);
+      if (firebaseUser) {
+        setTripsLoading(true);
+        loadTrips(firebaseUser.uid)
+          .then((trips) => {
+            setSavedTrips(trips);
+            if (trips.length > 0 && !generatedPlan) {
+              const latest = trips[0];
+              setGeneratedPlan(latest.plan as TripPlan);
+              setTripDetails({
+                destination: latest.destination,
+                checkIn: latest.checkIn,
+                checkOut: latest.checkOut,
+                guests: latest.guests,
+                tripType: latest.tripType,
+                budget: latest.budget,
+                vibe: latest.vibe,
+              });
+            }
+          })
+          .catch(console.error)
+          .finally(() => setTripsLoading(false));
+      } else {
+        setSavedTrips([]);
+        setTripsLoading(false);
+      }
+    });
+    return () => unsub();
   }, []);
 
   const filteredHotels = useMemo(() => {
@@ -418,25 +443,23 @@ export default function App() {
       setToast("✨ Your personalized itinerary is ready!");
 
       // Save to Firebase in the background
-      saveTrip(
-        {
-          destination: tripDetails.destination,
-          checkIn: tripDetails.checkIn,
-          checkOut: tripDetails.checkOut,
-          guests: tripDetails.guests,
-          tripType: tripDetails.tripType,
-          budget: tripDetails.budget,
-          vibe: tripDetails.vibe,
-        },
-        plan
-      )
-        .then((id) => {
-          console.log('[Firebase] Trip saved successfully, id:', id);
-          return loadTrips().then(setSavedTrips);
-        })
-        .catch((err) => {
-          console.error('[Firebase] Save failed:', err?.code, err?.message, err);
-        });
+      if (user) {
+        saveTrip(
+          user.uid,
+          {
+            destination: tripDetails.destination,
+            checkIn: tripDetails.checkIn,
+            checkOut: tripDetails.checkOut,
+            guests: tripDetails.guests,
+            tripType: tripDetails.tripType,
+            budget: tripDetails.budget,
+            vibe: tripDetails.vibe,
+          },
+          plan
+        )
+          .then(() => loadTrips(user.uid).then(setSavedTrips))
+          .catch(console.error);
+      }
     } catch (err: any) {
       console.error(err);
       setError(`Failed to generate plan: ${err?.message || 'Unknown error. Check console for details.'}`);
@@ -484,6 +507,21 @@ export default function App() {
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const handleSignIn = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error('Sign in failed:', err);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    setGeneratedPlan(null);
+    setSavedTrips([]);
   };
 
   const [showMapModal, setShowMapModal] = useState(false);
@@ -1082,10 +1120,56 @@ export default function App() {
     </div>
   );
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-treebo-bg flex items-center justify-center">
+        <Loader2 size={28} className="animate-spin text-treebo-teal" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex justify-center">
+        <div className="w-full max-w-[430px] bg-treebo-bg min-h-screen flex flex-col items-center justify-center px-8 gap-8">
+          <div className="flex flex-col items-center gap-3">
+            <img src="/treebo-icon.svg" alt="Treebo" className="w-20 h-20" />
+            <div className="text-center">
+              <h1 className="text-[32px] font-display font-semibold text-treebo-teal leading-tight">treebo</h1>
+              <p className="text-[14px] text-treebo-muted font-light tracking-wide">ai trip planner</p>
+            </div>
+          </div>
+
+          <div className="text-center space-y-2 max-w-xs">
+            <h2 className="text-[22px] font-display font-semibold text-treebo-text leading-snug">Plan your perfect trip</h2>
+            <p className="text-[13px] text-treebo-muted leading-relaxed">Sign in to generate personalised itineraries, browse Treebo hotels, and save your trip history.</p>
+          </div>
+
+          <button
+            onClick={handleSignIn}
+            className="w-full flex items-center justify-center gap-3 bg-white border border-treebo-border rounded-xl px-6 py-4 text-[15px] font-semibold text-treebo-text shadow-card hover:shadow-card-hover active:scale-[0.98] transition-all"
+          >
+            <svg width="20" height="20" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <p className="text-[11px] text-treebo-muted text-center leading-relaxed max-w-[260px]">
+            Your trips are saved securely to your Google account and accessible from any device.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-[430px] bg-treebo-bg min-h-screen relative shadow-xl flex flex-col">
-        <Header />
+        <Header user={user} onSignOut={handleSignOut} />
 
         <main className="flex-1 pt-[60px] px-5 overflow-y-auto no-scrollbar">
           <AnimatePresence mode="wait">

@@ -12,7 +12,7 @@ import { db } from './firebase';
 
 export interface SavedTrip {
   id: string;
-  sessionId: string;
+  userId: string;
   destination: string;
   checkIn: string;
   checkOut: string;
@@ -24,18 +24,8 @@ export interface SavedTrip {
   createdAt: Date;
 }
 
-// Get or create an anonymous session ID persisted in localStorage
-export function getSessionId(): string {
-  const key = 'treebo_session_id';
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem(key, id);
-  }
-  return id;
-}
-
 export async function saveTrip(
+  userId: string,
   details: {
     destination: string;
     checkIn: string;
@@ -48,7 +38,7 @@ export async function saveTrip(
   plan: object
 ): Promise<string> {
   const docRef = await addDoc(collection(db, 'trips'), {
-    sessionId: getSessionId(),
+    userId,
     ...details,
     plan,
     createdAt: serverTimestamp(),
@@ -56,11 +46,10 @@ export async function saveTrip(
   return docRef.id;
 }
 
-export async function loadTrips(): Promise<SavedTrip[]> {
-  const sessionId = getSessionId();
+export async function loadTrips(userId: string): Promise<SavedTrip[]> {
   const q = query(
     collection(db, 'trips'),
-    where('sessionId', '==', sessionId),
+    where('userId', '==', userId),
     orderBy('createdAt', 'desc')
   );
 
@@ -69,7 +58,7 @@ export async function loadTrips(): Promise<SavedTrip[]> {
     const data = doc.data();
     return {
       id: doc.id,
-      sessionId: data.sessionId,
+      userId: data.userId,
       destination: data.destination,
       checkIn: data.checkIn,
       checkOut: data.checkOut,
