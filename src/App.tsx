@@ -916,6 +916,16 @@ export default function App() {
 
     return (
       <div className="space-y-5 pb-28">
+        {/* Back to History */}
+        {savedTrips.length > 0 && (
+          <button
+            onClick={() => setActiveTab('history')}
+            className="flex items-center gap-1.5 text-[13px] text-treebo-muted hover:text-treebo-teal transition-colors pt-1"
+          >
+            <ChevronRight size={14} className="rotate-180" /> Back to History
+          </button>
+        )}
+
         {/* Summary Card */}
         <div className="bg-treebo-teal rounded-2xl p-5 text-white relative overflow-hidden">
           <div className="absolute inset-0 dot-pattern opacity-100" />
