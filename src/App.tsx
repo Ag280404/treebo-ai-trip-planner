@@ -351,7 +351,23 @@ export default function App() {
   useEffect(() => {
     setTripsLoading(true);
     loadTrips()
-      .then(setSavedTrips)
+      .then((trips) => {
+        setSavedTrips(trips);
+        // Auto-load most recent trip so itinerary tab always has content
+        if (trips.length > 0 && !generatedPlan) {
+          const latest = trips[0];
+          setGeneratedPlan(latest.plan as TripPlan);
+          setTripDetails({
+            destination: latest.destination,
+            checkIn: latest.checkIn,
+            checkOut: latest.checkOut,
+            guests: latest.guests,
+            tripType: latest.tripType,
+            budget: latest.budget,
+            vibe: latest.vibe,
+          });
+        }
+      })
       .catch(console.error)
       .finally(() => setTripsLoading(false));
   }, []);
@@ -666,50 +682,66 @@ export default function App() {
           </div>
         </div>
 
-        {/* My Trips */}
-        {(savedTrips.length > 0 || tripsLoading) && (
-          <div className="space-y-2.5">
+        {/* My Trips History */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
             <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
-              <ClipboardList size={11} className="text-treebo-teal" /> My Saved Trips
+              <ClipboardList size={11} className="text-treebo-teal" /> My Trip History
             </label>
-            {tripsLoading ? (
-              <div className="flex items-center gap-2 text-treebo-muted text-[13px]">
-                <Loader2 size={14} className="animate-spin" /> Loading trips...
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {savedTrips.map(trip => (
-                  <button
-                    key={trip.id}
-                    onClick={() => {
-                      setTripDetails({
-                        destination: trip.destination,
-                        checkIn: trip.checkIn,
-                        checkOut: trip.checkOut,
-                        guests: trip.guests,
-                        tripType: trip.tripType,
-                        budget: trip.budget,
-                        vibe: trip.vibe,
-                      });
-                      setGeneratedPlan(trip.plan as TripPlan);
-                      setActiveTab('itinerary');
-                    }}
-                    className="w-full bg-white border border-treebo-border rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:border-treebo-teal/40 hover:shadow-card-hover active:scale-[0.99] transition-all text-left"
-                  >
+            {savedTrips.length > 0 && (
+              <span className="text-[11px] bg-treebo-teal text-white px-2 py-0.5 rounded-full font-semibold">
+                {savedTrips.length}
+              </span>
+            )}
+          </div>
+
+          {tripsLoading ? (
+            <div className="flex items-center gap-2 text-treebo-muted text-[13px] py-2">
+              <Loader2 size={14} className="animate-spin text-treebo-teal" /> Loading your trips...
+            </div>
+          ) : savedTrips.length === 0 ? (
+            <div className="bg-treebo-tag border border-treebo-border rounded-xl px-4 py-4 text-center">
+              <p className="text-[13px] text-treebo-muted">No trips yet — generate your first itinerary above!</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {savedTrips.map((trip, idx) => (
+                <button
+                  key={trip.id}
+                  onClick={() => {
+                    setTripDetails({
+                      destination: trip.destination,
+                      checkIn: trip.checkIn,
+                      checkOut: trip.checkOut,
+                      guests: trip.guests,
+                      tripType: trip.tripType,
+                      budget: trip.budget,
+                      vibe: trip.vibe,
+                    });
+                    setGeneratedPlan(trip.plan as TripPlan);
+                    setActiveTab('itinerary');
+                  }}
+                  className="w-full bg-white border border-treebo-border rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:border-treebo-teal/40 hover:shadow-card-hover active:scale-[0.99] transition-all text-left"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-display font-bold flex-shrink-0 ${idx === 0 ? 'bg-treebo-teal text-white' : 'bg-treebo-tag text-treebo-muted'}`}>
+                      {trip.destination.slice(0, 2)}
+                    </div>
                     <div className="min-w-0">
                       <p className="text-[13px] font-semibold text-treebo-text truncate">{trip.destination}</p>
                       <p className="text-[11px] text-treebo-muted mt-0.5">{trip.checkIn} → {trip.checkOut} · {trip.guests} {trip.tripType}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[11px] text-treebo-muted">{trip.createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
-                      <ChevronRight size={14} className="text-treebo-muted" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {idx === 0 && <span className="text-[10px] bg-treebo-amber-light text-treebo-amber px-2 py-0.5 rounded-full font-semibold border border-treebo-amber/20">Latest</span>}
+                    <span className="text-[11px] text-treebo-muted">{trip.createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    <ChevronRight size={14} className="text-treebo-muted" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {error && (
           <motion.div
