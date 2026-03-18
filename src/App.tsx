@@ -108,6 +108,42 @@ interface ChatMessage {
   content: string;
 }
 
+// --- Markdown renderer for chat messages ---
+function renderMarkdown(raw: string): string {
+  // Strip any existing HTML to prevent XSS
+  let text = raw.replace(/<[^>]*>/g, '');
+  // Bold
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  const lines = text.split('\n');
+  const out: string[] = [];
+  let inOl = false;
+  let inUl = false;
+
+  for (const line of lines) {
+    const olMatch = line.match(/^\d+\.\s+(.+)/);
+    const ulMatch = line.match(/^[-*]\s+(.+)/);
+    if (olMatch) {
+      if (inUl) { out.push('</ul>'); inUl = false; }
+      if (!inOl) { out.push('<ol>'); inOl = true; }
+      out.push(`<li>${olMatch[1]}</li>`);
+    } else if (ulMatch) {
+      if (inOl) { out.push('</ol>'); inOl = false; }
+      if (!inUl) { out.push('<ul>'); inUl = true; }
+      out.push(`<li>${ulMatch[1]}</li>`);
+    } else {
+      if (inOl) { out.push('</ol>'); inOl = false; }
+      if (inUl) { out.push('</ul>'); inUl = false; }
+      if (line.trim()) out.push(`<p>${line}</p>`);
+    }
+  }
+  if (inOl) out.push('</ol>');
+  if (inUl) out.push('</ul>');
+  return out.join('');
+}
+
 // --- Mock Data ---
 
 const CITIES = ["Delhi", "Mumbai", "Bangalore", "Jaipur", "Goa", "Manali", "Coorg", "Hyderabad"];
@@ -868,7 +904,14 @@ export default function App() {
                   T
                 </div>
               )}
-              <div>{msg.content}</div>
+              {msg.role === 'model' ? (
+                <div
+                  className="prose prose-sm max-w-none [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1 [&_li]:mb-1 [&_p]:mb-1 [&_strong]:font-semibold"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
+                />
+              ) : (
+                <div>{msg.content}</div>
+              )}
             </div>
           </motion.div>
         ))}
