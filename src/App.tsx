@@ -203,37 +203,81 @@ const MOCK_HOTELS: HotelData[] = [
 
 // --- Components ---
 
-const Header = ({ user, onSignOut }: { user: User | null, onSignOut: () => void }) => (
-  <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/95 backdrop-blur-sm border-b border-treebo-border px-5 py-2.5 flex justify-between items-center">
-    <div className="flex items-center gap-2">
-      <img src="/treebo-icon.svg" alt="Treebo" className="w-9 h-9" />
-      <div className="flex items-baseline gap-1.5">
-        <h1 className="text-[18px] font-display font-semibold text-treebo-teal tracking-tight leading-none">treebo</h1>
-        <span className="text-[10px] text-treebo-muted font-sans font-light tracking-wide leading-none">ai planner</span>
-      </div>
-    </div>
-    {user ? (
+const Header = ({ user, onSignOut }: { user: User | null, onSignOut: () => void }) => {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/95 backdrop-blur-sm border-b border-treebo-border px-5 py-2.5 flex justify-between items-center">
       <div className="flex items-center gap-2">
-        <span className="text-[12px] text-treebo-muted font-medium hidden sm:block">
-          Hi, {user.displayName?.split(' ')[0] || 'there'}
-        </span>
-        <button onClick={onSignOut} title="Sign out" className="flex items-center gap-2 group">
-          {user.photoURL ? (
-            <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full border-2 border-treebo-teal/30" />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-treebo-teal text-white flex items-center justify-center text-[12px] font-semibold">
-              {user.displayName?.[0] || 'U'}
-            </div>
-          )}
-        </button>
+        <img src="/treebo-icon.svg" alt="Treebo" className="w-9 h-9" />
+        <div className="flex items-baseline gap-1.5">
+          <h1 className="text-[18px] font-display font-semibold text-treebo-teal tracking-tight leading-none">treebo</h1>
+          <span className="text-[10px] text-treebo-muted font-sans font-light tracking-wide leading-none">ai planner</span>
+        </div>
       </div>
-    ) : (
-      <div className="w-8 h-8 rounded-full bg-treebo-tag border border-treebo-border flex items-center justify-center">
-        <User size={14} className="text-treebo-muted" />
-      </div>
-    )}
-  </header>
-);
+
+      {user ? (
+        <div className="relative">
+          {/* Avatar button */}
+          <button
+            onClick={() => setMenuOpen(prev => !prev)}
+            className="flex items-center gap-2 focus:outline-none"
+          >
+            <span className="text-[12px] text-treebo-muted font-medium">
+              Hi, {user.displayName?.split(' ')[0] || 'there'}
+            </span>
+            {user.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full border-2 border-treebo-teal/30" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-treebo-teal text-white flex items-center justify-center text-[12px] font-semibold">
+                {user.displayName?.[0] || 'U'}
+              </div>
+            )}
+          </button>
+
+          {/* Dropdown menu */}
+          <AnimatePresence>
+            {menuOpen && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-11 z-20 w-56 bg-white border border-treebo-border rounded-2xl shadow-lg overflow-hidden"
+                >
+                  {/* User info */}
+                  <div className="px-4 py-3 border-b border-treebo-border bg-treebo-tag/50">
+                    <p className="text-[13px] font-semibold text-treebo-text truncate">{user.displayName}</p>
+                    <p className="text-[11px] text-treebo-muted truncate mt-0.5">{user.email}</p>
+                  </div>
+
+                  {/* Sign out */}
+                  <button
+                    onClick={() => { setMenuOpen(false); onSignOut(); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <ArrowRight size={14} className="rotate-180 text-red-500" />
+                    Sign out
+                  </button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </div>
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-treebo-tag border border-treebo-border flex items-center justify-center">
+          <User size={14} className="text-treebo-muted" />
+        </div>
+      )}
+    </header>
+  );
+};
 
 const BottomNav = ({ activeTab, setActiveTab, tripCount }: { activeTab: string, setActiveTab: (tab: string) => void, tripCount: number }) => {
   const tabs = [
