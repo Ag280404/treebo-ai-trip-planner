@@ -1,5 +1,9 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "functions": {
+    "api/generate-trip.ts": { "maxDuration": 60 },
+    "api/chat.ts": { "maxDuration": 30 }
+  }
 }

@@ -74,7 +74,7 @@ async function callGemini(ai: GoogleGenAI, model: string, prompt: string) {
     model,
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: `You are Treebo's AI Trip Planner. Generate a detailed, day-by-day travel itinerary in JSON format based on the trip details provided. Include morning, afternoon, and evening activities. Each activity must have: name, emoji, description (1 sentence), duration_hours (number), cost_inr (number), distance_from_hotel_km (number). Also include a trip_summary with destination, total_estimated_cost_inr, top_tip, and vibe_tags (array). Return ONLY valid JSON, no markdown blocks.`,
+      systemInstruction: `You are Treebo's AI Trip Planner. Generate a concise day-by-day itinerary. Each day has morning (2 activities), afternoon (2 activities), evening (1-2 activities). Keep descriptions short (under 15 words). Be specific to the destination. Return valid JSON only.`,
       responseMimeType: "application/json",
       responseSchema: SCHEMA,
     }
@@ -99,10 +99,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const prompt = `Plan a trip to ${destination} for ${guests} ${tripType} traveler(s). Budget per night for hotel: ₹${budget}. Trip vibe: ${(vibe || []).join(', ')}. Dates: ${checkIn} to ${checkOut}.`;
 
-  // Try gemini-2.5-flash first, fall back to gemini-2.0-flash on 503
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+  // Cap at 5 days to keep responses fast
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const totalDays = Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / msPerDay);
+  const planDays = Math.min(totalDays || 3, 5);
+
+  const prompt = `Plan a ${planDays}-day trip to ${destination} for ${guests} ${tripType} traveler(s). Budget per night: ₹${budget}. Vibe: ${(vibe || []).join(', ')}. Dates: ${checkIn} to ${checkOut}. Generate exactly ${planDays} days. Keep each activity description under 15 words.`;
+
+  // gemini-2.0-flash is primary (faster), 2.5-flash as fallback
+  const models = ['gemini-2.0-flash', 'gemini-2.5-flash'];
 
   for (const model of models) {
     try {
