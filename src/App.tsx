@@ -336,7 +336,6 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY! });
       const model = ai.models.generateContent({
         model: "gemini-2.5-flash",
-        systemInstruction: `You are Treebo's AI Trip Planner. Generate a detailed, day-by-day travel itinerary in JSON format based on the trip details provided. Include morning, afternoon, and evening activities. Each activity must have: name, emoji, description (1 sentence), duration_hours (number), cost_inr (number), distance_from_hotel_km (number). Also include a trip_summary with destination, total_estimated_cost_inr, top_tip, and vibe_tags (array). Return ONLY valid JSON, no markdown blocks.`,
         contents: [{
           role: 'user',
           parts: [{
@@ -344,6 +343,7 @@ export default function App() {
           }]
         }],
         config: {
+          systemInstruction: `You are Treebo's AI Trip Planner. Generate a detailed, day-by-day travel itinerary in JSON format based on the trip details provided. Include morning, afternoon, and evening activities. Each activity must have: name, emoji, description (1 sentence), duration_hours (number), cost_inr (number), distance_from_hotel_km (number). Also include a trip_summary with destination, total_estimated_cost_inr, top_tip, and vibe_tags (array). Return ONLY valid JSON, no markdown blocks.`,
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
@@ -384,9 +384,9 @@ export default function App() {
       setGeneratedPlan(plan);
       setActiveTab('itinerary');
       setToast("✨ Your personalized itinerary is ready!");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("Failed to generate plan. Please check your connection and try again.");
+      setError(`Failed to generate plan: ${err?.message || 'Unknown error. Check console for details.'}`);
     } finally {
       setIsLoading(false);
     }
@@ -421,9 +421,9 @@ export default function App() {
       const response = await chat.sendMessage({ message });
       const aiResponse: ChatMessage = { role: 'model', content: response.text || "I'm sorry, I couldn't process that." };
       setChatHistory(prev => [...prev, aiResponse]);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setChatHistory(prev => [...prev, { role: 'model', content: "Oops! I'm having trouble connecting. Can you try again?" }]);
+      setChatHistory(prev => [...prev, { role: 'model', content: `Error: ${err?.message || "Oops! I'm having trouble connecting. Can you try again?"}` }]);
     } finally {
       setIsTyping(false);
     }
