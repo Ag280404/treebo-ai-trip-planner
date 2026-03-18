@@ -111,6 +111,17 @@ interface ChatMessage {
   content: string;
 }
 
+// --- Utilities ---
+function formatDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function getTodayStr(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
 // --- Markdown renderer for chat messages ---
 function renderMarkdown(raw: string): string {
   // Strip any existing HTML to prevent XSS
@@ -202,15 +213,20 @@ const Header = ({ user, onSignOut }: { user: User | null, onSignOut: () => void 
       </div>
     </div>
     {user ? (
-      <button onClick={onSignOut} className="flex items-center gap-2 group">
-        {user.photoURL ? (
-          <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full border-2 border-treebo-teal/30" />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-treebo-teal text-white flex items-center justify-center text-[12px] font-semibold">
-            {user.displayName?.[0] || 'U'}
-          </div>
-        )}
-      </button>
+      <div className="flex items-center gap-2">
+        <span className="text-[12px] text-treebo-muted font-medium hidden sm:block">
+          Hi, {user.displayName?.split(' ')[0] || 'there'}
+        </span>
+        <button onClick={onSignOut} title="Sign out" className="flex items-center gap-2 group">
+          {user.photoURL ? (
+            <img src={user.photoURL} alt={user.displayName || ''} className="w-8 h-8 rounded-full border-2 border-treebo-teal/30" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-treebo-teal text-white flex items-center justify-center text-[12px] font-semibold">
+              {user.displayName?.[0] || 'U'}
+            </div>
+          )}
+        </button>
+      </div>
     ) : (
       <div className="w-8 h-8 rounded-full bg-treebo-tag border border-treebo-border flex items-center justify-center">
         <User size={14} className="text-treebo-muted" />
@@ -356,6 +372,7 @@ export default function App() {
   const [tripsLoading, setTripsLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [loadingMsg, setLoadingMsg] = useState('Crafting your trip...');
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -410,12 +427,31 @@ export default function App() {
 
   const generateTripPlan = async () => {
     if (!tripDetails.checkIn || !tripDetails.checkOut) {
-      setError("Please select travel dates first!");
+      setError("Please select your check-in and check-out dates.");
+      return;
+    }
+    if (tripDetails.checkOut <= tripDetails.checkIn) {
+      setError("Check-out date must be after check-in date.");
       return;
     }
 
     setIsLoading(true);
     setError(null);
+
+    // Rotating loading messages
+    const msgs = [
+      'Crafting your trip...',
+      `Exploring ${tripDetails.destination}...`,
+      'Finding hidden gems...',
+      'Building your itinerary...',
+      'Almost ready...',
+    ];
+    let msgIdx = 0;
+    setLoadingMsg(msgs[0]);
+    const msgInterval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % msgs.length;
+      setLoadingMsg(msgs[msgIdx]);
+    }, 4000);
 
     try {
       const res = await fetch('/api/generate-trip', {
@@ -462,8 +498,9 @@ export default function App() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(`Failed to generate plan: ${err?.message || 'Unknown error. Check console for details.'}`);
+      setError(`Failed to generate plan: ${err?.message || 'Unknown error. Please try again.'}`);
     } finally {
+      clearInterval(msgInterval);
       setIsLoading(false);
     }
   };
@@ -630,8 +667,16 @@ export default function App() {
             <input
               type="date"
               className="input-field"
+              min={getTodayStr()}
               value={tripDetails.checkIn}
-              onChange={(e) => setTripDetails({ ...tripDetails, checkIn: e.target.value })}
+              onChange={(e) => {
+                const newCheckIn = e.target.value;
+                setTripDetails(prev => ({
+                  ...prev,
+                  checkIn: newCheckIn,
+                  checkOut: prev.checkOut && prev.checkOut <= newCheckIn ? '' : prev.checkOut,
+                }));
+              }}
             />
           </div>
           <div className="space-y-2">
@@ -641,6 +686,7 @@ export default function App() {
             <input
               type="date"
               className="input-field"
+              min={tripDetails.checkIn || getTodayStr()}
               value={tripDetails.checkOut}
               onChange={(e) => setTripDetails({ ...tripDetails, checkOut: e.target.value })}
             />
@@ -673,13 +719,16 @@ export default function App() {
             <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
               <Briefcase size={11} className="text-treebo-teal" /> Trip Type
             </label>
-            <select
-              className="input-field appearance-none"
-              value={tripDetails.tripType}
-              onChange={(e) => setTripDetails({ ...tripDetails, tripType: e.target.value })}
-            >
-              {TRIP_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
-            </select>
+            <div className="flex flex-wrap gap-1.5">
+              {TRIP_TYPES.map(type => (
+                <Chip
+                  key={type}
+                  label={type}
+                  selected={tripDetails.tripType === type}
+                  onClick={() => setTripDetails({ ...tripDetails, tripType: type })}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
@@ -687,12 +736,12 @@ export default function App() {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider">Budget per night</label>
-            <span className="text-[13px] font-semibold text-treebo-teal bg-treebo-teal-light px-3 py-1 rounded-lg">₹{tripDetails.budget}</span>
+            <span className="text-[13px] font-semibold text-treebo-teal bg-treebo-teal-light px-3 py-1 rounded-lg">₹{tripDetails.budget.toLocaleString('en-IN')}</span>
           </div>
           <input
             type="range"
             min="500"
-            max="5000"
+            max="10000"
             step="100"
             className="w-full cursor-pointer"
             value={tripDetails.budget}
@@ -700,7 +749,7 @@ export default function App() {
           />
           <div className="flex justify-between text-[11px] text-treebo-muted font-medium">
             <span>₹500</span>
-            <span>₹5,000</span>
+            <span>₹10,000</span>
           </div>
         </div>
 
@@ -749,7 +798,7 @@ export default function App() {
           {isLoading ? (
             <>
               <Loader2 className="animate-spin" size={19} />
-              <span>Crafting your trip...</span>
+              <span>{loadingMsg}</span>
             </>
           ) : (
             <>
@@ -814,7 +863,7 @@ export default function App() {
                         <span className="text-[10px] bg-treebo-amber text-white px-2 py-0.5 rounded-full font-semibold">Latest</span>
                       )}
                     </div>
-                    <p className="text-[12px] text-treebo-muted">{trip.checkIn} → {trip.checkOut}</p>
+                    <p className="text-[12px] text-treebo-muted">{formatDate(trip.checkIn)} → {formatDate(trip.checkOut)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] text-treebo-muted">Saved on</p>
@@ -936,7 +985,7 @@ export default function App() {
                 <h2 className="text-[22px] font-display font-semibold leading-tight">
                   {generatedPlan.trip_summary?.destination || tripDetails.destination}
                 </h2>
-                <p className="text-[12px] text-white/60 mt-0.5">{tripDetails.checkIn} — {tripDetails.checkOut}</p>
+                <p className="text-[12px] text-white/60 mt-0.5">{formatDate(tripDetails.checkIn)} — {formatDate(tripDetails.checkOut)}</p>
               </div>
               <div className="bg-white/15 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-white/10">
                 {generatedPlan.days?.length || 0} days
@@ -965,13 +1014,21 @@ export default function App() {
         </div>
 
         <div className="flex gap-2.5">
+          <div className="flex-1 bg-treebo-teal-light border border-treebo-teal/20 text-treebo-teal py-2.5 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5">
+            <CheckCircle2 size={14} /> Saved to History
+          </div>
           <button
-            onClick={() => setToast("Itinerary saved to your Treebo account!")}
+            onClick={async () => {
+              const text = `My ${tripDetails.destination} trip plan (${formatDate(tripDetails.checkIn)} – ${formatDate(tripDetails.checkOut)}) via Treebo AI Planner!`;
+              if (navigator.share) {
+                await navigator.share({ title: `Treebo Trip to ${tripDetails.destination}`, text });
+              } else {
+                await navigator.clipboard.writeText(text);
+                setToast("Trip details copied to clipboard!");
+              }
+            }}
             className="flex-1 bg-white border border-treebo-border text-treebo-muted py-2.5 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] hover:border-treebo-teal/40 hover:text-treebo-teal transition-all shadow-card"
           >
-            <Download size={14} /> Save
-          </button>
-          <button className="flex-1 bg-white border border-treebo-border text-treebo-muted py-2.5 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] hover:border-treebo-teal/40 hover:text-treebo-teal transition-all shadow-card">
             <Share2 size={14} /> Share
           </button>
         </div>
@@ -1000,7 +1057,7 @@ export default function App() {
                             <span className="text-xl leading-none mt-0.5">{act.emoji}</span>
                             <div className="flex-1 min-w-0">
                               <h5 className="font-semibold text-[14px] text-treebo-text leading-snug">{act.name}</h5>
-                              <p className="text-[12px] text-treebo-muted line-clamp-1 mt-0.5">{act.description}</p>
+                              <p className="text-[12px] text-treebo-muted mt-0.5 leading-relaxed">{act.description}</p>
                             </div>
                           </div>
                           <span className="text-[11px] font-semibold text-treebo-teal bg-treebo-teal-light px-2 py-0.5 rounded-md flex-shrink-0">₹{act.cost_inr}</span>
@@ -1055,7 +1112,12 @@ export default function App() {
               <p className="text-[13px] text-treebo-muted">Ask me anything about your trip to {tripDetails.destination}.</p>
             </div>
             <div className="flex flex-wrap justify-center gap-2 max-w-[280px]">
-              {["What should I pack?", "Best local food?", "Is it safe solo?", "Weekend activities"].map(prompt => (
+              {[
+                `Best food in ${tripDetails.destination}?`,
+                "What should I pack?",
+                `Hidden gems in ${tripDetails.destination}`,
+                "Budget tips for this trip",
+              ].map(prompt => (
                 <button
                   key={prompt}
                   onClick={() => handleSendMessage(prompt)}
