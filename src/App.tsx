@@ -660,6 +660,7 @@ export default function App() {
 
   const renderPlanTab = () => {
     const labelCls = 'text-[12px] font-semibold text-treebo-muted uppercase tracking-wide flex items-center gap-1.5';
+    const labelPlainCls = 'text-[12px] font-semibold text-treebo-muted uppercase tracking-wide';
     const tripTypeBtnCls = (t: string) =>
       `py-2.5 rounded-xl text-[13px] font-medium transition-all border text-center ${tripDetails.tripType === t ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm' : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50'}`;
     return (
@@ -748,7 +749,7 @@ export default function App() {
         {/* Guests */}
         <div className="space-y-2">
           <label className={labelCls}><Users size={12} className="text-treebo-teal" /> Guests</label>
-          <div className="flex items-center justify-between bg-white border border-treebo-border rounded-xl px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-treebo-teal/15 focus-within:border-treebo-teal transition-all">
+          <div className="flex items-center justify-between bg-white border border-treebo-border rounded-xl px-4 py-3 text-[14px] focus-within:ring-2 focus-within:ring-treebo-teal/15 focus-within:border-treebo-teal transition-all">
             <button onClick={() => setTripDetails({ ...tripDetails, guests: Math.max(1, tripDetails.guests - 1) })} className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"><Minus size={16} /></button>
             <span className="font-semibold text-treebo-text text-[15px]">{tripDetails.guests}</span>
             <button onClick={() => setTripDetails({ ...tripDetails, guests: Math.min(8, tripDetails.guests + 1) })} className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"><Plus size={16} /></button>
@@ -773,7 +774,7 @@ export default function App() {
         {/* Budget — slider with live progress fill */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className={labelCls.replace('flex items-center gap-1.5', '')}>Budget per night</label>
+            <label className={labelPlainCls}>Budget per night</label>
             <span className="text-[13px] font-bold text-treebo-teal bg-treebo-teal-light px-3 py-1 rounded-full">
               ₹{tripDetails.budget.toLocaleString('en-IN')}
             </span>
@@ -785,7 +786,7 @@ export default function App() {
             style={{ '--progress': `${((tripDetails.budget - 500) / (10000 - 500)) * 100}%` } as React.CSSProperties}
             onChange={(e) => setTripDetails({ ...tripDetails, budget: parseInt(e.target.value) })}
           />
-          <div className="flex justify-between text-[11px] text-treebo-muted font-medium"><span>₹500</span><span>₹10,000</span></div>
+          <div className="flex justify-between text-[12px] text-treebo-muted font-medium px-1"><span>₹500</span><span>₹10,000</span></div>
         </div>
 
         {/* Vibe */}
