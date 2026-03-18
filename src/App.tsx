@@ -36,7 +36,8 @@ import {
   Navigation
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Type } from "@google/genai";
+// API calls are proxied through Vercel serverless functions
+import { saveTrip, loadTrips, type SavedTrip } from './tripStore';
 import {
   APIProvider,
   Map,
@@ -331,6 +332,8 @@ export default function App() {
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [savedTrips, setSavedTrips] = useState<SavedTrip[]>([]);
+  const [tripsLoading, setTripsLoading] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -345,6 +348,14 @@ export default function App() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory, isTyping]);
 
+  useEffect(() => {
+    setTripsLoading(true);
+    loadTrips()
+      .then(setSavedTrips)
+      .catch(console.error)
+      .finally(() => setTripsLoading(false));
+  }, []);
+
   const filteredHotels = useMemo(() => {
     const hotels = MOCK_HOTELS.filter(h => h.city === tripDetails.destination);
     return hotels.length > 0 ? hotels : MOCK_HOTELS.filter(h => h.city === 'Goa'); // Default to Goa if somehow city missing
@@ -358,59 +369,47 @@ export default function App() {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY! });
-      const model = ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{
-          role: 'user',
-          parts: [{
-            text: `Plan a trip to ${tripDetails.destination} for ${tripDetails.guests} ${tripDetails.tripType} traveler(s). Budget per night for hotel: ₹${tripDetails.budget}. Trip vibe: ${tripDetails.vibe.join(', ')}. Dates: ${tripDetails.checkIn} to ${tripDetails.checkOut}.`
-          }]
-        }],
-        config: {
-          systemInstruction: `You are Treebo's AI Trip Planner. Generate a detailed, day-by-day travel itinerary in JSON format based on the trip details provided. Include morning, afternoon, and evening activities. Each activity must have: name, emoji, description (1 sentence), duration_hours (number), cost_inr (number), distance_from_hotel_km (number). Also include a trip_summary with destination, total_estimated_cost_inr, top_tip, and vibe_tags (array). Return ONLY valid JSON, no markdown blocks.`,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              trip_summary: {
-                type: Type.OBJECT,
-                properties: {
-                  destination: { type: Type.STRING },
-                  total_estimated_cost_inr: { type: Type.NUMBER },
-                  top_tip: { type: Type.STRING },
-                  vibe_tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-                },
-                required: ["destination", "total_estimated_cost_inr", "top_tip", "vibe_tags"]
-              },
-              days: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    day: { type: Type.NUMBER },
-                    label: { type: Type.STRING },
-                    morning: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, emoji: { type: Type.STRING }, description: { type: Type.STRING }, duration_hours: { type: Type.NUMBER }, cost_inr: { type: Type.NUMBER }, distance_from_hotel_km: { type: Type.NUMBER } } } },
-                    afternoon: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, emoji: { type: Type.STRING }, description: { type: Type.STRING }, duration_hours: { type: Type.NUMBER }, cost_inr: { type: Type.NUMBER }, distance_from_hotel_km: { type: Type.NUMBER } } } },
-                    evening: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, emoji: { type: Type.STRING }, description: { type: Type.STRING }, duration_hours: { type: Type.NUMBER }, cost_inr: { type: Type.NUMBER }, distance_from_hotel_km: { type: Type.NUMBER } } } }
-                  }
-                }
-              }
-            }
-          }
-        }
+      const res = await fetch('/api/generate-trip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination: tripDetails.destination,
+          guests: tripDetails.guests,
+          tripType: tripDetails.tripType,
+          budget: tripDetails.budget,
+          vibe: tripDetails.vibe,
+          checkIn: tripDetails.checkIn,
+          checkOut: tripDetails.checkOut,
+        }),
       });
 
-      const response = await model;
-      let text = response.text || '{}';
-      // Clean up markdown if present
-      text = text.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
-      const plan = JSON.parse(text);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${res.status}`);
+      }
+
+      const plan = await res.json();
       setGeneratedPlan(plan);
       setActiveTab('itinerary');
       setToast("✨ Your personalized itinerary is ready!");
+
+      // Save to Firebase in the background
+      saveTrip(
+        {
+          destination: tripDetails.destination,
+          checkIn: tripDetails.checkIn,
+          checkOut: tripDetails.checkOut,
+          guests: tripDetails.guests,
+          tripType: tripDetails.tripType,
+          budget: tripDetails.budget,
+          vibe: tripDetails.vibe,
+        },
+        plan
+      )
+        .then(() => loadTrips().then(setSavedTrips))
+        .catch(console.error);
     } catch (err: any) {
       console.error(err);
       setError(`Failed to generate plan: ${err?.message || 'Unknown error. Check console for details.'}`);
@@ -429,24 +428,28 @@ export default function App() {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY! });
-
-      // Convert our chatHistory to the format expected by the SDK
-      const history = chatHistory.map(m => ({
-        role: m.role,
-        parts: [{ text: m.content }]
-      }));
-
-      const chat = ai.chats.create({
-        model: "gemini-2.5-flash",
-        history: history,
-        config: {
-          systemInstruction: `You are Treebo's friendly travel assistant. The user is planning a trip to ${tripDetails.destination} from ${tripDetails.checkIn} to ${tripDetails.checkOut}. They are interested in a Treebo hotel (budget: ₹${tripDetails.budget}/night). Be concise, warm, practical. Mention Treebo hotel amenities (Free WiFi, AC, Breakfast, Assured quality) where relevant. Never recommend competitor hotels.`,
-        }
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          history: chatHistory,
+          tripContext: {
+            destination: tripDetails.destination,
+            checkIn: tripDetails.checkIn,
+            checkOut: tripDetails.checkOut,
+            budget: tripDetails.budget,
+          },
+        }),
       });
 
-      const response = await chat.sendMessage({ message });
-      const aiResponse: ChatMessage = { role: 'model', content: response.text || "I'm sorry, I couldn't process that." };
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const aiResponse: ChatMessage = { role: 'model', content: data.reply || "I'm sorry, I couldn't process that." };
       setChatHistory(prev => [...prev, aiResponse]);
     } catch (err: any) {
       console.error(err);
@@ -657,6 +660,51 @@ export default function App() {
             ))}
           </div>
         </div>
+
+        {/* My Trips */}
+        {(savedTrips.length > 0 || tripsLoading) && (
+          <div className="space-y-2.5">
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
+              <ClipboardList size={11} className="text-treebo-teal" /> My Saved Trips
+            </label>
+            {tripsLoading ? (
+              <div className="flex items-center gap-2 text-treebo-muted text-[13px]">
+                <Loader2 size={14} className="animate-spin" /> Loading trips...
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {savedTrips.map(trip => (
+                  <button
+                    key={trip.id}
+                    onClick={() => {
+                      setTripDetails({
+                        destination: trip.destination,
+                        checkIn: trip.checkIn,
+                        checkOut: trip.checkOut,
+                        guests: trip.guests,
+                        tripType: trip.tripType,
+                        budget: trip.budget,
+                        vibe: trip.vibe,
+                      });
+                      setGeneratedPlan(trip.plan as TripPlan);
+                      setActiveTab('itinerary');
+                    }}
+                    className="w-full bg-white border border-treebo-border rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:border-treebo-teal/40 hover:shadow-card-hover active:scale-[0.99] transition-all text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-treebo-text truncate">{trip.destination}</p>
+                      <p className="text-[11px] text-treebo-muted mt-0.5">{trip.checkIn} → {trip.checkOut} · {trip.guests} {trip.tripType}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[11px] text-treebo-muted">{trip.createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                      <ChevronRight size={14} className="text-treebo-muted" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {error && (
           <motion.div
