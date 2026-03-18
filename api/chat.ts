@@ -24,7 +24,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : 'The user has not planned a trip yet. Encourage them to fill in trip details on the Plan tab.'
   } Be warm and helpful. Use Indian English naturally. Keep replies under 120 words unless detail is explicitly requested. Never recommend OYO, Zostel, or any other hotel brand besides Treebo. Mention Treebo hotel amenities (Free WiFi, AC, Breakfast, Treebo Assured quality) where relevant.`;
 
-  // Try OpenRouter first (reliable free tier)
+  // Build conversation contents for generateContent (same API that trip generation uses — proven to work)
+  const contents = [
+    ...(history || []).map((m: { role: string; content: string }) => ({
+      role: m.role === 'model' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    })),
+    { role: 'user', parts: [{ text: message }] },
+  ];
+
+  // Try OpenRouter first (free tier, no quota issues)
   const orKey = process.env.OPENROUTER_API_KEY;
   if (orKey) {
     try {
@@ -41,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           messages: [
             { role: 'system', content: systemInstruction },
             ...(history || []).map((m: { role: string; content: string }) => ({
-              role: m.role === 'model' ? 'assistant' : m.role,
+              role: m.role === 'model' ? 'assistant' : 'user',
               content: m.content,
             })),
             { role: 'user', content: message },
@@ -53,33 +62,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (orRes.ok) {
         const orData = await orRes.json();
-        const reply = orData.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that.";
-        return res.status(200).json({ reply });
+        const reply = orData.choices?.[0]?.message?.content?.trim();
+        if (reply) {
+          console.log('[chat] OpenRouter success');
+          return res.status(200).json({ reply });
+        }
       }
-      console.warn('OpenRouter non-ok:', orRes.status);
+      console.warn('[chat] OpenRouter non-ok or empty:', orRes.status);
     } catch (orErr: any) {
-      console.warn('OpenRouter failed:', orErr?.message);
+      console.warn('[chat] OpenRouter failed:', orErr?.message);
     }
   }
 
-  // Fall back to Gemini
+  // Fall back to Gemini — use generateContent (same as generate-trip, proven stable)
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
     try {
       const ai = new GoogleGenAI({ apiKey: geminiKey });
-      const chat = ai.chats.create({
+      const response = await ai.models.generateContent({
         model: 'gemini-2.0-flash',
-        history: (history || []).map((m: { role: string; content: string }) => ({
-          role: m.role,
-          parts: [{ text: m.content }],
-        })),
+        contents,
         config: { systemInstruction },
       });
-      const response = await chat.sendMessage({ message });
-      const reply = response.text || "I'm sorry, I couldn't process that.";
+      const reply = response.text?.trim() || "I'm sorry, I couldn't process that.";
+      console.log('[chat] Gemini success');
       return res.status(200).json({ reply });
     } catch (geminiErr: any) {
-      console.warn('Gemini chat failed:', geminiErr?.message);
+      console.warn('[chat] Gemini failed:', geminiErr?.message);
     }
   }
 

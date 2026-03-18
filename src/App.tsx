@@ -1105,12 +1105,12 @@ export default function App() {
 
   // Bug 2 & 3: chat uses its own flex layout — no fixed positioning, no 100vh
   const renderChatTab = () => (
-    <div className="flex flex-col h-full -mx-5">
+    <div className="flex flex-col flex-1 min-h-0 -mx-5">
       {/* Messages scroll area */}
-      <div className="flex-1 overflow-y-auto no-scrollbar px-5">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5">
         {chatHistory.length === 0 ? (
           // Bug 3: flex-col with flex-1 spacer pushes chips to bottom — no dead gap
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="flex flex-col items-center pt-8 pb-4 px-2 text-center">
               <div className="w-14 h-14 rounded-2xl bg-treebo-teal-light flex items-center justify-center mb-3">
                 <Sparkles size={24} className="text-treebo-teal" />
@@ -1224,12 +1224,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
-      <div className="w-full max-w-[430px] bg-treebo-bg min-h-screen relative shadow-xl flex flex-col">
+      <div className="w-full max-w-[430px] bg-treebo-bg h-screen h-dvh overflow-hidden relative shadow-xl flex flex-col">
         <Header user={user} onSignOut={handleSignOut} onShowHistory={() => setActiveTab('history')} />
 
-        <main className={`flex-1 pt-[56px] ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'px-5 overflow-y-auto no-scrollbar'}`}>
+        <main className={`flex-1 pt-[56px] ${activeTab === 'chat' ? 'overflow-hidden flex flex-col pb-16' : 'px-5 overflow-y-auto no-scrollbar'}`}>
           <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }} className={activeTab === 'chat' ? 'h-full flex flex-col' : ''}>
+            <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }} className={activeTab === 'chat' ? 'flex-1 min-h-0 flex flex-col' : ''}>
               {activeTab === 'plan' && renderPlanTab()}
               {activeTab === 'hotels' && renderHotelsTab()}
               {activeTab === 'itinerary' && (
