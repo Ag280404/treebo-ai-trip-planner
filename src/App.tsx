@@ -227,9 +227,33 @@ const MOCK_HOTELS: HotelData[] = [
   { id: 'h2', name: 'Treebo Trend Cyber Inn', location: 'Hitech City, Hyderabad', rating: 4.0, price: 2500, amenities: ['Free WiFi', 'AC', '24/7 Check-in'], imageGradient: 'from-purple-500 to-indigo-600', city: 'Hyderabad' },
 ];
 
+// --- Error Boundary ---
+
+class TripErrorBoundary extends React.Component<
+  { children: React.ReactNode; onReset: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error) { console.error('Trip tab error:', error); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
+          <span className="text-4xl mb-4">🗺️</span>
+          <h3 className="font-display font-bold text-lg text-treebo-text mb-2">Something went wrong</h3>
+          <p className="text-sm text-treebo-muted mb-4">We couldn't load your trip. Please try again.</p>
+          <button onClick={() => { this.setState({ hasError: false }); this.props.onReset(); }} className="bg-treebo-teal text-white px-4 py-2 rounded-xl text-sm font-medium">Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // --- Components ---
 
-const Header = ({ user, onSignOut }: { user: AppUser | null; onSignOut: () => void }) => {
+const Header = ({ user, onSignOut, onShowHistory }: { user: AppUser | null; onSignOut: () => void; onShowHistory: () => void }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/95 backdrop-blur-sm border-b border-treebo-border px-5 py-2.5 flex justify-between items-center">
@@ -269,6 +293,15 @@ const Header = ({ user, onSignOut }: { user: AppUser | null; onSignOut: () => vo
                     <p className="text-[13px] font-semibold text-treebo-text truncate">{user.isGuest ? 'Guest User' : user.displayName}</p>
                     <p className="text-[11px] text-treebo-muted truncate mt-0.5">{user.isGuest ? 'Browsing as guest' : user.email}</p>
                   </div>
+                  {!user.isGuest && (
+                    <button
+                      onClick={() => { setMenuOpen(false); onShowHistory(); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-treebo-text hover:bg-treebo-tag transition-colors border-b border-treebo-border"
+                    >
+                      <Clock size={14} className="text-treebo-teal" />
+                      My Trip History
+                    </button>
+                  )}
                   <button
                     onClick={() => { setMenuOpen(false); onSignOut(); }}
                     className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors"
@@ -293,24 +326,22 @@ const Header = ({ user, onSignOut }: { user: AppUser | null; onSignOut: () => vo
 const BottomNav = ({
   activeTab,
   setActiveTab,
-  tripCount,
   hasItinerary,
 }: {
   activeTab: string;
   setActiveTab: (t: string) => void;
-  tripCount: number;
   hasItinerary: boolean;
 }) => {
+  // 4 tabs only — History moved to profile menu in header
   const tabs = [
     { id: 'plan', label: 'Plan', icon: MapPin },
     { id: 'hotels', label: 'Hotels', icon: Hotel },
     { id: 'itinerary', label: 'Trip', icon: ClipboardList },
-    { id: 'history', label: 'History', icon: Clock },
     { id: 'chat', label: 'AI Chat', icon: MessageSquare },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-treebo-border px-2 pt-2 pb-[calc(24px+env(safe-area-inset-bottom,0px))] flex justify-around items-center">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-treebo-border flex items-stretch pb-[env(safe-area-inset-bottom,0px)]">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -318,17 +349,12 @@ const BottomNav = ({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-all duration-200 min-w-[60px] ${isActive ? 'text-treebo-teal' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-all duration-200 ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}
           >
-            <div className={`relative p-1.5 rounded-lg transition-all duration-200 ${isActive ? 'bg-treebo-teal-light' : ''}`}>
-              <Icon size={20} strokeWidth={isActive ? 2 : 1.5} />
-              {tab.id === 'history' && tripCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-treebo-amber text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {tripCount > 9 ? '9+' : tripCount}
-                </span>
-              )}
+            <div className="relative">
+              <Icon size={22} strokeWidth={isActive ? 2.2 : 1.5} />
               {tab.id === 'itinerary' && hasItinerary && activeTab !== 'itinerary' && (
-                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-amber-400" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400" />
               )}
             </div>
             <span className={`text-[10px] font-medium leading-none ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}>{tab.label}</span>
@@ -640,13 +666,28 @@ export default function App() {
             <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
               <MapPin size={11} className="text-treebo-teal" /> Destination
             </label>
-            <button onClick={() => setShowMapModal(true)} className="text-[11px] font-medium text-treebo-teal flex items-center gap-1 hover:underline underline-offset-2 transition-colors">
+            {/* Bug 7: opens Google Maps for selected destination */}
+            <button
+              onClick={() => window.open(`https://maps.google.com/maps?q=${encodeURIComponent(tripDetails.destination + ', India')}`, '_blank')}
+              className="text-[11px] font-medium text-treebo-teal flex items-center gap-1 hover:underline underline-offset-2 transition-colors"
+            >
               <MapIcon size={11} /> View on map
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          {/* Bug 10: horizontal scroll chips instead of wrapping */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
             {CITIES.map((city) => (
-              <Chip key={city} label={city} selected={tripDetails.destination === city} onClick={() => setTripDetails({ ...tripDetails, destination: city })} />
+              <button
+                key={city}
+                onClick={() => setTripDetails({ ...tripDetails, destination: city })}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-150 border whitespace-nowrap ${
+                  tripDetails.destination === city
+                    ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm'
+                    : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50 hover:text-treebo-teal'
+                }`}
+              >
+                {city}
+              </button>
             ))}
           </div>
         </div>
@@ -693,31 +734,50 @@ export default function App() {
           </div>
         </div>
 
-        {/* Guests & Type */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Users size={11} className="text-treebo-teal" /> Guests</label>
-            <div className="flex items-center justify-between bg-white border border-treebo-border rounded-xl px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-treebo-teal/15 focus-within:border-treebo-teal transition-all">
-              <button onClick={() => setTripDetails({ ...tripDetails, guests: Math.max(1, tripDetails.guests - 1) })} className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"><Minus size={16} /></button>
-              <span className="font-semibold text-treebo-text text-[15px]">{tripDetails.guests}</span>
-              <button onClick={() => setTripDetails({ ...tripDetails, guests: Math.min(8, tripDetails.guests + 1) })} className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"><Plus size={16} /></button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={11} className="text-treebo-teal" /> Trip Type</label>
-            <div className="flex flex-wrap gap-1.5">
-              {TRIP_TYPES.map((t) => <Chip key={t} label={t} selected={tripDetails.tripType === t} onClick={() => setTripDetails({ ...tripDetails, tripType: t })} />)}
-            </div>
+        {/* Guests */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Users size={11} className="text-treebo-teal" /> Guests</label>
+          <div className="flex items-center justify-between bg-white border border-treebo-border rounded-xl px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-treebo-teal/15 focus-within:border-treebo-teal transition-all">
+            <button onClick={() => setTripDetails({ ...tripDetails, guests: Math.max(1, tripDetails.guests - 1) })} className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"><Minus size={16} /></button>
+            <span className="font-semibold text-treebo-text text-[15px]">{tripDetails.guests}</span>
+            <button onClick={() => setTripDetails({ ...tripDetails, guests: Math.min(8, tripDetails.guests + 1) })} className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"><Plus size={16} /></button>
           </div>
         </div>
 
-        {/* Budget */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider">Budget per night</label>
-            <span className="text-[13px] font-semibold text-treebo-teal bg-treebo-teal-light px-3 py-1 rounded-lg">₹{tripDetails.budget.toLocaleString('en-IN')}</span>
+        {/* Trip Type — Bug 4: 3+2 grid so chips don't orphan */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={11} className="text-treebo-teal" /> Trip Type</label>
+          <div className="grid grid-cols-3 gap-2">
+            {TRIP_TYPES.slice(0, 3).map((t) => (
+              <button key={t} onClick={() => setTripDetails({ ...tripDetails, tripType: t })}
+                className={`py-2 rounded-xl text-[13px] font-medium transition-all border text-center ${tripDetails.tripType === t ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm' : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50'}`}
+              >{t}</button>
+            ))}
           </div>
-          <input type="range" min="500" max="10000" step="100" className="w-full cursor-pointer" value={tripDetails.budget} onChange={(e) => setTripDetails({ ...tripDetails, budget: parseInt(e.target.value) })} />
+          <div className="grid grid-cols-2 gap-2">
+            {TRIP_TYPES.slice(3).map((t) => (
+              <button key={t} onClick={() => setTripDetails({ ...tripDetails, tripType: t })}
+                className={`py-2 rounded-xl text-[13px] font-medium transition-all border text-center ${tripDetails.tripType === t ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm' : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50'}`}
+              >{t}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Budget — Bug 5: slider with live progress fill */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider">Budget per night</label>
+            <span className="text-[13px] font-bold text-treebo-teal bg-treebo-teal-light px-3 py-1 rounded-full">
+              ₹{tripDetails.budget.toLocaleString('en-IN')}
+            </span>
+          </div>
+          <input
+            type="range" min="500" max="10000" step="100"
+            className="w-full cursor-pointer"
+            value={tripDetails.budget}
+            style={{ '--progress': `${((tripDetails.budget - 500) / (10000 - 500)) * 100}%` } as React.CSSProperties}
+            onChange={(e) => setTripDetails({ ...tripDetails, budget: parseInt(e.target.value) })}
+          />
           <div className="flex justify-between text-[11px] text-treebo-muted font-medium"><span>₹500</span><span>₹10,000</span></div>
         </div>
 
@@ -731,7 +791,7 @@ export default function App() {
           </div>
         </div>
 
-        <p className="text-[12px] text-treebo-muted text-center">View all your saved trips in the <span className="text-treebo-teal font-semibold">History</span> tab below.</p>
+        <p className="text-[12px] text-treebo-muted text-center">View saved trips via <span className="text-treebo-teal font-semibold">My Trip History</span> in the profile menu.</p>
 
         {error && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3 text-[13px]">
@@ -1037,51 +1097,71 @@ export default function App() {
     </div>
   );
 
+  // Bug 2 & 3: chat uses its own flex layout — no fixed positioning, no 100vh
   const renderChatTab = () => (
-    <div className="flex flex-col h-[calc(100vh-180px)] pb-28">
-      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 p-1">
-        {chatHistory.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-5 px-4">
-            <div className="w-14 h-14 rounded-2xl bg-treebo-teal-light flex items-center justify-center"><Sparkles size={24} className="text-treebo-teal" /></div>
-            <div className="space-y-1.5">
+    <div className="flex flex-col h-full -mx-5">
+      {/* Messages scroll area */}
+      <div className="flex-1 overflow-y-auto no-scrollbar px-5">
+        {chatHistory.length === 0 ? (
+          // Bug 3: flex-col with flex-1 spacer pushes chips to bottom — no dead gap
+          <div className="flex flex-col h-full">
+            <div className="flex flex-col items-center pt-8 pb-4 px-2 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-treebo-teal-light flex items-center justify-center mb-3">
+                <Sparkles size={24} className="text-treebo-teal" />
+              </div>
               <h3 className="font-display font-semibold text-treebo-text text-[18px]">Treebo AI Assistant</h3>
-              <p className="text-[13px] text-treebo-muted">Ask me anything about your trip to {tripDetails.destination}.</p>
+              <p className="text-[13px] text-treebo-muted mt-1">Ask me anything about your trip to {tripDetails.destination}.</p>
             </div>
-            <div className="flex flex-wrap justify-center gap-2 max-w-[280px]">
+            <div className="flex-1" />
+            <div className="px-0 pb-4 space-y-2">
               {[`Best food in ${tripDetails.destination}?`, 'What should I pack?', `Hidden gems in ${tripDetails.destination}`, 'Budget tips for this trip'].map((p) => (
-                <button key={p} onClick={() => handleSendMessage(p)} className="bg-white border border-treebo-border text-treebo-muted px-4 py-2 rounded-full text-[12px] font-medium hover:border-treebo-teal/50 hover:text-treebo-teal transition-colors">{p}</button>
+                <button key={p} onClick={() => handleSendMessage(p)}
+                  className="w-full text-left px-4 py-3 rounded-2xl border border-treebo-border bg-white text-[13px] text-treebo-text hover:border-treebo-teal hover:bg-treebo-teal/5 transition-colors">
+                  {p}
+                </button>
               ))}
             </div>
           </div>
-        )}
-
-        {chatHistory.map((msg, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed ${msg.role === 'user' ? 'bg-treebo-teal text-white rounded-br-sm font-medium' : 'bg-white text-treebo-text border border-treebo-border rounded-bl-sm shadow-card flex gap-2.5'}`}>
-              {msg.role === 'model' && <div className="w-6 h-6 rounded-md bg-treebo-teal flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold mt-0.5">T</div>}
-              {msg.role === 'model' ? (
-                <div className="[&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1.5 [&_li]:mb-1 [&_p]:mb-1.5 [&_strong]:font-semibold [&_strong]:text-treebo-text" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
-              ) : <div>{msg.content}</div>}
-            </div>
-          </motion.div>
-        ))}
-
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-treebo-border shadow-card flex gap-1.5 items-center">
-              <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce" />
-              <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.15s]" />
-              <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.3s]" />
-            </div>
+        ) : (
+          <div className="space-y-3 py-4">
+            {chatHistory.map((msg, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed ${msg.role === 'user' ? 'bg-treebo-teal text-white rounded-br-sm font-medium' : 'bg-white text-treebo-text border border-treebo-border rounded-bl-sm shadow-card flex gap-2.5'}`}>
+                  {msg.role === 'model' && <div className="w-6 h-6 rounded-md bg-treebo-teal flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold mt-0.5">T</div>}
+                  {msg.role === 'model' ? (
+                    <div className="[&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1.5 [&_li]:mb-1 [&_p]:mb-1.5 [&_strong]:font-semibold [&_strong]:text-treebo-text" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
+                  ) : <div>{msg.content}</div>}
+                </div>
+              </motion.div>
+            ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-treebo-border shadow-card flex gap-1.5 items-center">
+                  <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce" />
+                  <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.15s]" />
+                  <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.3s]" />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
           </div>
         )}
-        <div ref={chatEndRef} />
       </div>
 
-      <div className="fixed bottom-[64px] left-0 right-0 px-4 py-3 bg-treebo-bg/95 backdrop-blur-sm border-t border-treebo-border max-w-[430px] mx-auto">
+      {/* Input bar — in normal flow, not fixed. Sits above bottom nav naturally. */}
+      <div className="flex-shrink-0 px-4 py-3 border-t border-treebo-border bg-treebo-bg/95 backdrop-blur-sm">
         <div className="flex gap-2">
-          <input type="text" placeholder="Ask anything about your trip..." className="flex-1 bg-white border border-treebo-border rounded-xl px-4 py-3 text-[14px] text-treebo-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-treebo-teal/15 focus:border-treebo-teal transition-all" value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} />
-          <button onClick={() => handleSendMessage()} className="bg-treebo-teal text-white p-3 rounded-xl shadow-button active:scale-90 transition-all hover:bg-treebo-teal-dark"><Send size={18} /></button>
+          <input
+            type="text"
+            placeholder="Ask anything about your trip..."
+            className="flex-1 bg-white border border-treebo-border rounded-full px-4 py-3 text-[14px] text-treebo-text placeholder:text-gray-400 focus:outline-none focus:border-treebo-teal transition-all"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+          />
+          <button onClick={() => handleSendMessage()} className="w-12 h-12 bg-treebo-teal text-white rounded-full flex items-center justify-center shadow-button active:scale-90 transition-all hover:bg-treebo-teal-dark flex-shrink-0">
+            <Send size={18} />
+          </button>
         </div>
       </div>
     </div>
@@ -1139,21 +1219,25 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-[430px] bg-treebo-bg min-h-screen relative shadow-xl flex flex-col">
-        <Header user={user} onSignOut={handleSignOut} />
+        <Header user={user} onSignOut={handleSignOut} onShowHistory={() => setActiveTab('history')} />
 
-        <main className="flex-1 pt-[60px] px-5 overflow-y-auto no-scrollbar">
+        <main className={`flex-1 pt-[56px] ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'px-5 overflow-y-auto no-scrollbar'}`}>
           <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+            <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }} className={activeTab === 'chat' ? 'h-full flex flex-col' : ''}>
               {activeTab === 'plan' && renderPlanTab()}
               {activeTab === 'hotels' && renderHotelsTab()}
-              {activeTab === 'itinerary' && renderItineraryTab()}
+              {activeTab === 'itinerary' && (
+                <TripErrorBoundary onReset={() => setGeneratedPlan(null)}>
+                  {renderItineraryTab()}
+                </TripErrorBoundary>
+              )}
               {activeTab === 'history' && renderHistoryTab()}
               {activeTab === 'chat' && renderChatTab()}
             </motion.div>
           </AnimatePresence>
         </main>
 
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} tripCount={savedTrips.length} hasItinerary={!!generatedPlan} />
+        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} hasItinerary={!!generatedPlan} />
 
         {/* Toast */}
         <AnimatePresence>

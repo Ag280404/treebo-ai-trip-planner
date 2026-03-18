@@ -46,20 +46,26 @@
   background-size: 18px 18px;
 }
 
-/* Range input */
+/* Range input — fills progress with teal color */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  height: 4px;
-  background: #E8E2D9;
+  height: 6px;
+  background: linear-gradient(
+    to right,
+    #0B4F41 0%,
+    #0B4F41 var(--progress, 0%),
+    #E8E2D9 var(--progress, 0%),
+    #E8E2D9 100%
+  );
   border-radius: 4px;
   outline: none;
   cursor: pointer;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #0B4F41;
   cursor: pointer;
@@ -74,6 +80,12 @@ input[type="range"]::-webkit-slider-thumb {
 /* iOS safe area */
 body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* dvh support — makes h-screen use dynamic viewport height (iOS Safari fix) */
+@supports (height: 100dvh) {
+  .h-dvh { height: 100dvh; }
+  .min-h-dvh { min-height: 100dvh; }
 }
 
 /* Input focus ring */
