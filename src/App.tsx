@@ -600,7 +600,13 @@ export default function App() {
       const data = await res.json();
       setChatHistory((p) => [...p, { role: 'model', content: data.reply || "I'm sorry, I couldn't process that." }]);
     } catch (err: any) {
-      setChatHistory((p) => [...p, { role: 'model', content: `Error: ${err?.message || "Oops! I'm having trouble connecting. Try again?"}` }]);
+      const errMsg = err?.message || '';
+      const friendlyMsg = errMsg.includes('quota') || errMsg.includes('429')
+        ? "I'm a bit overwhelmed right now — quota limit hit. Please try again in a minute! 🙏"
+        : errMsg.includes('busy') || errMsg.includes('503')
+        ? "I'm a little busy at the moment. Give me a second and try again!"
+        : "Oops! I'm having trouble connecting. Please try again.";
+      setChatHistory((p) => [...p, { role: 'model', content: friendlyMsg }]);
     } finally {
       setIsTyping(false);
     }
