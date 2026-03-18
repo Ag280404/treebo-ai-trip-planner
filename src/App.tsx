@@ -351,7 +351,7 @@ const BottomNav = ({
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-all duration-200 relative ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}
           >
-            {isActive && <span className="absolute top-0 left-[20%] right-[20%] h-[2.5px] rounded-full bg-treebo-teal" />}
+            {isActive && <span className="absolute top-0 left-4 right-4 h-0.5 rounded-full bg-treebo-teal" />}
             <div className="relative">
               <Icon size={22} strokeWidth={isActive ? 2.2 : 1.5} />
               {tab.id === 'itinerary' && hasItinerary && activeTab !== 'itinerary' && (
