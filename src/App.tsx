@@ -349,15 +349,16 @@ const BottomNav = ({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-all duration-200 ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-all duration-200 relative ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}
           >
+            {isActive && <span className="absolute top-0 left-[20%] right-[20%] h-[2.5px] rounded-full bg-treebo-teal" />}
             <div className="relative">
               <Icon size={22} strokeWidth={isActive ? 2.2 : 1.5} />
               {tab.id === 'itinerary' && hasItinerary && activeTab !== 'itinerary' && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400" />
               )}
             </div>
-            <span className={`text-[10px] font-medium leading-none ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}>{tab.label}</span>
+            <span className={`text-[10px] font-semibold leading-none tracking-wide ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}>{tab.label}</span>
           </button>
         );
       })}
@@ -657,7 +658,11 @@ export default function App() {
 
   // ─── Tab Renderers ───────────────────────────────────────────────────────────
 
-  const renderPlanTab = () => (
+  const renderPlanTab = () => {
+    const labelCls = 'text-[12px] font-semibold text-treebo-muted uppercase tracking-wide flex items-center gap-1.5';
+    const tripTypeBtnCls = (t: string) =>
+      `py-2.5 rounded-xl text-[13px] font-medium transition-all border text-center ${tripDetails.tripType === t ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm' : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50'}`;
+    return (
     <div className="space-y-7 pb-28">
       <div className="space-y-1 pt-2">
         <p className="text-[11px] font-semibold text-treebo-teal uppercase tracking-[0.12em]">Plan your escape</p>
@@ -669,18 +674,17 @@ export default function App() {
         {/* Destination */}
         <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin size={11} className="text-treebo-teal" /> Destination
+            <label className={labelCls}>
+              <MapPin size={12} className="text-treebo-teal" /> Destination
             </label>
-            {/* Bug 7: opens Google Maps for selected destination */}
             <button
               onClick={() => window.open(`https://maps.google.com/maps?q=${encodeURIComponent(tripDetails.destination + ', India')}`, '_blank')}
-              className="text-[11px] font-medium text-treebo-teal flex items-center gap-1 hover:underline underline-offset-2 transition-colors"
+              className="text-[12px] font-medium text-treebo-teal flex items-center gap-1 hover:underline underline-offset-2 transition-colors"
             >
-              <MapIcon size={11} /> View on map
+              <MapIcon size={12} /> View on map
             </button>
           </div>
-          {/* Bug 10: horizontal scroll chips instead of wrapping */}
+          {/* horizontal scroll — spacer span ensures last chip has right padding */}
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
             {CITIES.map((city) => (
               <button
@@ -695,6 +699,7 @@ export default function App() {
                 {city}
               </button>
             ))}
+            <span className="flex-shrink-0 w-4 block" aria-hidden="true" />
           </div>
         </div>
 
@@ -731,18 +736,18 @@ export default function App() {
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Calendar size={11} className="text-treebo-teal" /> Check-in</label>
+            <label className={labelCls}><Calendar size={12} className="text-treebo-teal" /> Check-in</label>
             <input type="date" className="input-field" min={getTodayStr()} value={tripDetails.checkIn} onChange={(e) => { const v = e.target.value; setTripDetails((p) => ({ ...p, checkIn: v, checkOut: p.checkOut && p.checkOut <= v ? '' : p.checkOut })); }} />
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Calendar size={11} className="text-treebo-teal" /> Check-out</label>
+            <label className={labelCls}><Calendar size={12} className="text-treebo-teal" /> Check-out</label>
             <input type="date" className="input-field" min={tripDetails.checkIn || getTodayStr()} value={tripDetails.checkOut} onChange={(e) => setTripDetails({ ...tripDetails, checkOut: e.target.value })} />
           </div>
         </div>
 
         {/* Guests */}
         <div className="space-y-2">
-          <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Users size={11} className="text-treebo-teal" /> Guests</label>
+          <label className={labelCls}><Users size={12} className="text-treebo-teal" /> Guests</label>
           <div className="flex items-center justify-between bg-white border border-treebo-border rounded-xl px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-treebo-teal/15 focus-within:border-treebo-teal transition-all">
             <button onClick={() => setTripDetails({ ...tripDetails, guests: Math.max(1, tripDetails.guests - 1) })} className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"><Minus size={16} /></button>
             <span className="font-semibold text-treebo-text text-[15px]">{tripDetails.guests}</span>
@@ -750,29 +755,25 @@ export default function App() {
           </div>
         </div>
 
-        {/* Trip Type — Bug 4: 3+2 grid so chips don't orphan */}
+        {/* Trip Type — 3+2 grid so chips don't orphan */}
         <div className="space-y-2">
-          <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Briefcase size={11} className="text-treebo-teal" /> Trip Type</label>
+          <label className={labelCls}><Briefcase size={12} className="text-treebo-teal" /> Trip Type</label>
           <div className="grid grid-cols-3 gap-2">
             {TRIP_TYPES.slice(0, 3).map((t) => (
-              <button key={t} onClick={() => setTripDetails({ ...tripDetails, tripType: t })}
-                className={`py-2 rounded-xl text-[13px] font-medium transition-all border text-center ${tripDetails.tripType === t ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm' : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50'}`}
-              >{t}</button>
+              <button key={t} onClick={() => setTripDetails({ ...tripDetails, tripType: t })} className={tripTypeBtnCls(t)}>{t}</button>
             ))}
           </div>
           <div className="grid grid-cols-2 gap-2">
             {TRIP_TYPES.slice(3).map((t) => (
-              <button key={t} onClick={() => setTripDetails({ ...tripDetails, tripType: t })}
-                className={`py-2 rounded-xl text-[13px] font-medium transition-all border text-center ${tripDetails.tripType === t ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm' : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50'}`}
-              >{t}</button>
+              <button key={t} onClick={() => setTripDetails({ ...tripDetails, tripType: t })} className={tripTypeBtnCls(t)}>{t}</button>
             ))}
           </div>
         </div>
 
-        {/* Budget — Bug 5: slider with live progress fill */}
+        {/* Budget — slider with live progress fill */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider">Budget per night</label>
+            <label className={labelCls.replace('flex items-center gap-1.5', '')}>Budget per night</label>
             <span className="text-[13px] font-bold text-treebo-teal bg-treebo-teal-light px-3 py-1 rounded-full">
               ₹{tripDetails.budget.toLocaleString('en-IN')}
             </span>
@@ -789,7 +790,7 @@ export default function App() {
 
         {/* Vibe */}
         <div className="space-y-2.5">
-          <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5"><Sparkles size={11} className="text-treebo-teal" /> Trip Vibe</label>
+          <label className={labelCls}><Sparkles size={12} className="text-treebo-teal" /> Trip Vibe</label>
           <div className="flex flex-wrap gap-2">
             {VIBES.map((v) => (
               <Chip key={v} label={v} selected={tripDetails.vibe.includes(v)} onClick={() => { const nv = tripDetails.vibe.includes(v) ? tripDetails.vibe.filter((x) => x !== v) : [...tripDetails.vibe, v]; setTripDetails({ ...tripDetails, vibe: nv }); }} />
@@ -815,6 +816,7 @@ export default function App() {
       </div>
     </div>
   );
+  };
 
   const renderHotelsTab = () => (
     <div className="space-y-5 pb-28">
@@ -1109,8 +1111,8 @@ export default function App() {
       {/* Messages scroll area */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5">
         {chatHistory.length === 0 ? (
-          // Bug 3: flex-col with flex-1 spacer pushes chips to bottom — no dead gap
-          <div className="flex flex-col flex-1 min-h-0">
+          // flex-col with min-h-full so spacer pushes chips to bottom inside overflow-y-auto parent
+          <div className="flex flex-col min-h-full">
             <div className="flex flex-col items-center pt-8 pb-4 px-2 text-center">
               <div className="w-14 h-14 rounded-2xl bg-treebo-teal-light flex items-center justify-center mb-3">
                 <Sparkles size={24} className="text-treebo-teal" />
