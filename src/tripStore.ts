@@ -4,7 +4,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
@@ -49,12 +48,11 @@ export async function saveTrip(
 export async function loadTrips(userId: string): Promise<SavedTrip[]> {
   const q = query(
     collection(db, 'trips'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', userId)
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => {
+  const trips = snapshot.docs.map(doc => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -70,4 +68,7 @@ export async function loadTrips(userId: string): Promise<SavedTrip[]> {
       createdAt: (data.createdAt as Timestamp)?.toDate?.() ?? new Date(),
     };
   });
+
+  // Sort newest first client-side (avoids composite index requirement)
+  return trips.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
