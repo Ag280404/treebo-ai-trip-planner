@@ -1,6 +1,110 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
 
+const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+const OPENROUTER_MODELS = [
+  'meta-llama/llama-3.3-8b-instruct:free',
+  'google/gemini-2.0-flash-exp:free',
+];
+
+function isTransientError(err: any) {
+  const status = err?.status || err?.code;
+  const message = String(err?.message || '');
+  return (
+    status === 429 ||
+    status === 503 ||
+    message.includes('429') ||
+    message.includes('503') ||
+    message.includes('UNAVAILABLE') ||
+    message.includes('overloaded')
+  );
+}
+
+async function tryOpenRouter(messages: Array<{ role: string; content: string }>, systemInstruction: string) {
+  const orKey = process.env.OPENROUTER_API_KEY;
+  if (!orKey) {
+    return null;
+  }
+
+  for (const model of OPENROUTER_MODELS) {
+    try {
+      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${orKey}`,
+          'HTTP-Referer': 'https://treebo-ai-trip-planner.vercel.app',
+          'X-Title': 'Treebo AI Trip Planner',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemInstruction },
+            ...messages,
+          ],
+          max_tokens: 300,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!orRes.ok) {
+        const body = await orRes.text();
+        console.warn('[chat] OpenRouter non-ok:', model, orRes.status, body);
+        continue;
+      }
+
+      const orData = await orRes.json();
+      const reply = orData.choices?.[0]?.message?.content?.trim();
+      if (reply) {
+        console.log('[chat] OpenRouter success:', model);
+        return reply;
+      }
+
+      console.warn('[chat] OpenRouter empty reply:', model);
+    } catch (orErr: any) {
+      console.warn('[chat] OpenRouter failed:', model, orErr?.message);
+    }
+  }
+
+  return null;
+}
+
+async function tryGemini(contents: Array<{ role: string; parts: Array<{ text: string }> }>, systemInstruction: string) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) {
+    return null;
+  }
+
+  const ai = new GoogleGenAI({ apiKey: geminiKey });
+
+  for (let i = 0; i < GEMINI_MODELS.length; i++) {
+    const model = GEMINI_MODELS[i];
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config: { systemInstruction },
+      });
+      const reply = response.text?.trim();
+      if (reply) {
+        console.log('[chat] Gemini success:', model);
+        return reply;
+      }
+      console.warn('[chat] Gemini empty reply:', model);
+    } catch (geminiErr: any) {
+      console.warn('[chat] Gemini failed:', model, geminiErr?.status || geminiErr?.code, geminiErr?.message);
+      if (!isTransientError(geminiErr)) {
+        break;
+      }
+      if (i < GEMINI_MODELS.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+    }
+  }
+
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -33,63 +137,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     { role: 'user', parts: [{ text: message }] },
   ];
 
-  // Try OpenRouter first (free tier, no quota issues)
-  const orKey = process.env.OPENROUTER_API_KEY;
-  if (orKey) {
-    try {
-      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${orKey}`,
-          'HTTP-Referer': 'https://treebo-ai-trip-planner.vercel.app',
-          'X-Title': 'Treebo AI Trip Planner',
-        },
-        body: JSON.stringify({
-          model: 'meta-llama/llama-3.3-8b-instruct:free',
-          messages: [
-            { role: 'system', content: systemInstruction },
-            ...(history || []).map((m: { role: string; content: string }) => ({
-              role: m.role === 'model' ? 'assistant' : 'user',
-              content: m.content,
-            })),
-            { role: 'user', content: message },
-          ],
-          max_tokens: 300,
-          temperature: 0.7,
-        }),
-      });
+  const openRouterMessages = [
+    ...(history || []).map((m: { role: string; content: string }) => ({
+      role: m.role === 'model' ? 'assistant' : 'user',
+      content: m.content,
+    })),
+    { role: 'user', content: message },
+  ];
 
-      if (orRes.ok) {
-        const orData = await orRes.json();
-        const reply = orData.choices?.[0]?.message?.content?.trim();
-        if (reply) {
-          console.log('[chat] OpenRouter success');
-          return res.status(200).json({ reply });
-        }
-      }
-      console.warn('[chat] OpenRouter non-ok or empty:', orRes.status);
-    } catch (orErr: any) {
-      console.warn('[chat] OpenRouter failed:', orErr?.message);
-    }
+  const openRouterReply = await tryOpenRouter(openRouterMessages, systemInstruction);
+  if (openRouterReply) {
+    return res.status(200).json({ reply: openRouterReply });
   }
 
-  // Fall back to Gemini — use generateContent (same as generate-trip, proven stable)
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (geminiKey) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: geminiKey });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents,
-        config: { systemInstruction },
-      });
-      const reply = response.text?.trim() || "I'm sorry, I couldn't process that.";
-      console.log('[chat] Gemini success');
-      return res.status(200).json({ reply });
-    } catch (geminiErr: any) {
-      console.warn('[chat] Gemini failed:', geminiErr?.message);
-    }
+  const geminiReply = await tryGemini(contents, systemInstruction);
+  if (geminiReply) {
+    return res.status(200).json({ reply: geminiReply });
   }
 
   return res.status(503).json({ error: 'AI is currently unavailable. Please try again in a moment.' });
