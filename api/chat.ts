@@ -39,6 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ reply });
   } catch (err: any) {
     console.error('chat error:', err);
+    const isOverloaded = err?.message?.includes('503') || err?.message?.includes('UNAVAILABLE');
+    if (isOverloaded) {
+      return res.status(503).json({ error: 'AI is currently busy. Please try again in a moment.' });
+    }
     return res.status(500).json({ error: err?.message || 'Failed to get chat response' });
   }
 }
