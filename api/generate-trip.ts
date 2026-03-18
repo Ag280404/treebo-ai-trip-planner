@@ -107,10 +107,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const prompt = `Plan a ${planDays}-day trip to ${destination} for ${guests} ${tripType} traveler(s). Budget per night: ₹${budget}. Vibe: ${(vibe || []).join(', ')}. Dates: ${checkIn} to ${checkOut}. Generate exactly ${planDays} days. Keep each activity description under 15 words.`;
 
-  // gemini-2.0-flash is primary (faster), 2.5-flash as fallback
-  const models = ['gemini-2.0-flash', 'gemini-2.5-flash'];
+  // Model fallback chain — ordered by speed/availability
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'];
 
-  for (const model of models) {
+  let lastErr: any;
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
     try {
       const response = await callGemini(ai, model, prompt);
       let text = response.text || '{}';
@@ -119,18 +121,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log(`[generate-trip] Success with model: ${model}`);
       return res.status(200).json(plan);
     } catch (err: any) {
+      lastErr = err;
       const status = err?.status || err?.code;
-      const isOverloaded = status === 503 || status === 429 || err?.message?.includes('503') || err?.message?.includes('UNAVAILABLE');
+      const isOverloaded = status === 503 || status === 429 || err?.message?.includes('503') || err?.message?.includes('UNAVAILABLE') || err?.message?.includes('429');
       console.error(`[generate-trip] ${model} failed:`, status, err?.message);
 
-      // If last model also failed, return clean error
-      if (model === models[models.length - 1]) {
-        if (isOverloaded) {
-          return res.status(503).json({ error: 'Gemini AI is currently busy. Please try again in a moment.' });
-        }
+      if (!isOverloaded) {
+        // Non-transient error — don't retry
         return res.status(500).json({ error: err?.message || 'Failed to generate trip plan' });
       }
-      // Otherwise try next model
+
+      // Wait a moment before trying next model
+      if (i < models.length - 1) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
     }
   }
+
+  return res.status(503).json({ error: 'Gemini AI is currently busy. Please try again in a moment.' });
 }
