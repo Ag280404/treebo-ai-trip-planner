@@ -5,5 +5,8 @@
   "functions": {
     "api/generate-trip.ts": { "maxDuration": 60 },
     "api/chat.ts": { "maxDuration": 30 }
-  }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
