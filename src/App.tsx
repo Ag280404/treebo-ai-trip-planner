@@ -205,11 +205,12 @@ const Header = () => (
   </header>
 );
 
-const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) => {
+const BottomNav = ({ activeTab, setActiveTab, tripCount }: { activeTab: string, setActiveTab: (tab: string) => void, tripCount: number }) => {
   const tabs = [
     { id: 'plan', label: 'Plan', icon: MapPin },
     { id: 'hotels', label: 'Hotels', icon: Hotel },
     { id: 'itinerary', label: 'Trip', icon: ClipboardList },
+    { id: 'history', label: 'History', icon: Clock },
     { id: 'chat', label: 'AI Chat', icon: MessageSquare },
   ];
 
@@ -226,8 +227,13 @@ const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTa
               isActive ? 'text-treebo-teal' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <div className={`p-1.5 rounded-lg transition-all duration-200 ${isActive ? 'bg-treebo-teal-light' : ''}`}>
+            <div className={`relative p-1.5 rounded-lg transition-all duration-200 ${isActive ? 'bg-treebo-teal-light' : ''}`}>
               <Icon size={20} strokeWidth={isActive ? 2 : 1.5} />
+              {tab.id === 'history' && tripCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-treebo-amber text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {tripCount > 9 ? '9+' : tripCount}
+                </span>
+              )}
             </div>
             <span className={`text-[10px] font-medium leading-none ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}>
               {tab.label}
@@ -682,66 +688,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* My Trips History */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
-              <ClipboardList size={11} className="text-treebo-teal" /> My Trip History
-            </label>
-            {savedTrips.length > 0 && (
-              <span className="text-[11px] bg-treebo-teal text-white px-2 py-0.5 rounded-full font-semibold">
-                {savedTrips.length}
-              </span>
-            )}
-          </div>
-
-          {tripsLoading ? (
-            <div className="flex items-center gap-2 text-treebo-muted text-[13px] py-2">
-              <Loader2 size={14} className="animate-spin text-treebo-teal" /> Loading your trips...
-            </div>
-          ) : savedTrips.length === 0 ? (
-            <div className="bg-treebo-tag border border-treebo-border rounded-xl px-4 py-4 text-center">
-              <p className="text-[13px] text-treebo-muted">No trips yet — generate your first itinerary above!</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {savedTrips.map((trip, idx) => (
-                <button
-                  key={trip.id}
-                  onClick={() => {
-                    setTripDetails({
-                      destination: trip.destination,
-                      checkIn: trip.checkIn,
-                      checkOut: trip.checkOut,
-                      guests: trip.guests,
-                      tripType: trip.tripType,
-                      budget: trip.budget,
-                      vibe: trip.vibe,
-                    });
-                    setGeneratedPlan(trip.plan as TripPlan);
-                    setActiveTab('itinerary');
-                  }}
-                  className="w-full bg-white border border-treebo-border rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:border-treebo-teal/40 hover:shadow-card-hover active:scale-[0.99] transition-all text-left"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-display font-bold flex-shrink-0 ${idx === 0 ? 'bg-treebo-teal text-white' : 'bg-treebo-tag text-treebo-muted'}`}>
-                      {trip.destination.slice(0, 2)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-treebo-text truncate">{trip.destination}</p>
-                      <p className="text-[11px] text-treebo-muted mt-0.5">{trip.checkIn} → {trip.checkOut} · {trip.guests} {trip.tripType}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {idx === 0 && <span className="text-[10px] bg-treebo-amber-light text-treebo-amber px-2 py-0.5 rounded-full font-semibold border border-treebo-amber/20">Latest</span>}
-                    <span className="text-[11px] text-treebo-muted">{trip.createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
-                    <ChevronRight size={14} className="text-treebo-muted" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <p className="text-[12px] text-treebo-muted text-center">
+          View all your saved trips in the <span className="text-treebo-teal font-semibold">History</span> tab below.
+        </p>
 
         {error && (
           <motion.div
@@ -772,6 +721,108 @@ export default function App() {
           )}
         </button>
       </div>
+    </div>
+  );
+
+  const renderHistoryTab = () => (
+    <div className="space-y-5 pb-28">
+      <div className="pt-2">
+        <p className="text-[11px] font-semibold text-treebo-teal uppercase tracking-[0.12em] mb-0.5">Your travel story</p>
+        <h2 className="text-[24px] font-display font-semibold text-treebo-text leading-tight">
+          Trip <em>History</em>
+        </h2>
+        <p className="text-[13px] text-treebo-muted mt-1">All your planned adventures, saved forever.</p>
+      </div>
+
+      {tripsLoading ? (
+        <div className="flex flex-col items-center justify-center h-[50vh] gap-3">
+          <Loader2 size={28} className="animate-spin text-treebo-teal" />
+          <p className="text-[13px] text-treebo-muted">Loading your trips...</p>
+        </div>
+      ) : savedTrips.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4 px-4">
+          <div className="w-20 h-20 rounded-2xl bg-treebo-tag border border-treebo-border flex items-center justify-center">
+            <Clock size={32} className="text-gray-300" />
+          </div>
+          <div className="space-y-1.5 max-w-xs">
+            <h3 className="text-xl font-display font-semibold text-treebo-text">No trips yet</h3>
+            <p className="text-treebo-muted text-[13px] leading-relaxed">Your generated itineraries will be saved here automatically.</p>
+          </div>
+          <button
+            onClick={() => setActiveTab('plan')}
+            className="bg-treebo-teal text-white px-8 py-3 rounded-xl font-semibold text-[14px] shadow-button active:scale-[0.98] hover:bg-treebo-teal-dark transition-all"
+          >
+            Plan Your First Trip
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {savedTrips.map((trip, idx) => (
+            <motion.div
+              key={trip.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              className="bg-white border border-treebo-border rounded-2xl overflow-hidden shadow-card"
+            >
+              {/* Card Header */}
+              <div className={`h-2 w-full ${idx === 0 ? 'bg-treebo-teal' : 'bg-treebo-border'}`} />
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h3 className="text-[16px] font-display font-semibold text-treebo-text">{trip.destination}</h3>
+                      {idx === 0 && (
+                        <span className="text-[10px] bg-treebo-amber text-white px-2 py-0.5 rounded-full font-semibold">Latest</span>
+                      )}
+                    </div>
+                    <p className="text-[12px] text-treebo-muted">{trip.checkIn} → {trip.checkOut}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-treebo-muted">Saved on</p>
+                    <p className="text-[12px] font-semibold text-treebo-text">
+                      {trip.createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  <span className="bg-treebo-tag text-treebo-muted text-[11px] px-2.5 py-0.5 rounded-full border border-treebo-border">
+                    {trip.guests} {trip.tripType}
+                  </span>
+                  <span className="bg-treebo-tag text-treebo-muted text-[11px] px-2.5 py-0.5 rounded-full border border-treebo-border">
+                    ₹{trip.budget}/night
+                  </span>
+                  {trip.vibe.slice(0, 2).map((v) => (
+                    <span key={v} className="bg-treebo-teal-light text-treebo-teal text-[11px] px-2.5 py-0.5 rounded-full border border-treebo-teal/20">
+                      {v}
+                    </span>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setTripDetails({
+                      destination: trip.destination,
+                      checkIn: trip.checkIn,
+                      checkOut: trip.checkOut,
+                      guests: trip.guests,
+                      tripType: trip.tripType,
+                      budget: trip.budget,
+                      vibe: trip.vibe,
+                    });
+                    setGeneratedPlan(trip.plan as TripPlan);
+                    setActiveTab('itinerary');
+                  }}
+                  className="w-full bg-treebo-teal text-white py-2.5 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] hover:bg-treebo-teal-dark transition-all shadow-button"
+                >
+                  <ClipboardList size={14} /> View Itinerary
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -1048,12 +1099,13 @@ export default function App() {
               {activeTab === 'plan' && renderPlanTab()}
               {activeTab === 'hotels' && renderHotelsTab()}
               {activeTab === 'itinerary' && renderItineraryTab()}
+              {activeTab === 'history' && renderHistoryTab()}
               {activeTab === 'chat' && renderChatTab()}
             </motion.div>
           </AnimatePresence>
         </main>
 
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} tripCount={savedTrips.length} />
 
         {/* Toast Notification */}
         <AnimatePresence>
