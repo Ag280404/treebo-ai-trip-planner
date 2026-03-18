@@ -1,0 +1,12 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Yellow/Gold petal - top left -->
+  <path d="M100,100 C100,100 60,75 55,35 C75,15 110,40 100,100 Z" fill="#F5B800" opacity="0.95"/>
+  <!-- Green petal - top right -->
+  <path d="M100,100 C100,100 130,65 165,70 C175,100 145,125 100,100 Z" fill="#2BAD4A" opacity="0.95"/>
+  <!-- Lime/olive petal - bottom right -->
+  <path d="M100,100 C100,100 140,125 140,165 C115,180 85,160 100,100 Z" fill="#8DC63F" opacity="0.95"/>
+  <!-- Purple petal - bottom left -->
+  <path d="M100,100 C100,100 60,130 30,120 C25,90 50,65 100,100 Z" fill="#7B4FA0" opacity="0.95"/>
+  <!-- White center dot -->
+  <circle cx="100" cy="100" r="12" fill="white"/>
+</svg>

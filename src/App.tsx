@@ -190,11 +190,9 @@ const MOCK_HOTELS: HotelData[] = [
 // --- Components ---
 
 const Header = () => (
-  <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/95 backdrop-blur-sm border-b border-treebo-border px-5 py-3.5 flex justify-between items-center">
-    <div className="flex items-center gap-2.5">
-      <div className="w-8 h-8 rounded-lg bg-treebo-teal flex items-center justify-center">
-        <Hotel size={15} className="text-white" />
-      </div>
+  <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/95 backdrop-blur-sm border-b border-treebo-border px-5 py-2.5 flex justify-between items-center">
+    <div className="flex items-center gap-2">
+      <img src="/treebo-icon.svg" alt="Treebo" className="w-9 h-9" />
       <div className="flex items-baseline gap-1.5">
         <h1 className="text-[18px] font-display font-semibold text-treebo-teal tracking-tight leading-none">treebo</h1>
         <span className="text-[10px] text-treebo-muted font-sans font-light tracking-wide leading-none">ai planner</span>
