@@ -190,18 +190,18 @@ const MOCK_HOTELS: HotelData[] = [
 // --- Components ---
 
 const Header = () => (
-  <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/80 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex justify-between items-center">
-    <div className="flex items-center gap-3">
-      <div className="w-9 h-9 rounded-xl bg-treebo-teal/10 border border-treebo-teal/25 flex items-center justify-center shadow-inner">
-        <Hotel size={17} className="text-treebo-teal" />
+  <header className="fixed top-0 left-0 right-0 z-50 bg-treebo-bg/95 backdrop-blur-sm border-b border-treebo-border px-5 py-3.5 flex justify-between items-center">
+    <div className="flex items-center gap-2.5">
+      <div className="w-8 h-8 rounded-lg bg-treebo-teal flex items-center justify-center">
+        <Hotel size={15} className="text-white" />
       </div>
-      <div>
-        <h1 className="text-[19px] font-display font-bold tracking-tight leading-none text-white">treebo</h1>
-        <p className="text-[9px] uppercase tracking-[0.18em] text-treebo-teal/60 font-medium">AI Trip Planner</p>
+      <div className="flex items-baseline gap-1.5">
+        <h1 className="text-[18px] font-display font-semibold text-treebo-teal tracking-tight leading-none">treebo</h1>
+        <span className="text-[10px] text-treebo-muted font-sans font-light tracking-wide leading-none">ai planner</span>
       </div>
     </div>
-    <div className="w-9 h-9 rounded-xl bg-surface-2 border border-white/10 flex items-center justify-center">
-      <User size={16} className="text-gray-400" />
+    <div className="w-8 h-8 rounded-full bg-treebo-tag border border-treebo-border flex items-center justify-center">
+      <User size={14} className="text-treebo-muted" />
     </div>
   </header>
 );
@@ -215,7 +215,7 @@ const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTa
   ];
 
   return (
-    <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 bg-surface-2/95 backdrop-blur-xl border border-white/10 p-1.5 rounded-[28px] shadow-2xl shadow-black/60">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-treebo-border px-2 pt-2 pb-6 flex justify-around items-center">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -223,22 +223,16 @@ const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTa
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`relative flex items-center gap-2 rounded-[20px] text-xs font-bold transition-all duration-300 ${
-              isActive
-                ? 'bg-treebo-teal text-treebo-bg shadow-lg shadow-treebo-teal/30 px-4 py-2.5'
-                : 'text-gray-500 hover:text-gray-300 px-3 py-2.5'
+            className={`flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-all duration-200 min-w-[60px] ${
+              isActive ? 'text-treebo-teal' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-            {isActive && (
-              <motion.span
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                className="font-bold tracking-tight whitespace-nowrap overflow-hidden"
-              >
-                {tab.label}
-              </motion.span>
-            )}
+            <div className={`p-1.5 rounded-lg transition-all duration-200 ${isActive ? 'bg-treebo-teal-light' : ''}`}>
+              <Icon size={20} strokeWidth={isActive ? 2 : 1.5} />
+            </div>
+            <span className={`text-[10px] font-medium leading-none ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}>
+              {tab.label}
+            </span>
           </button>
         );
       })}
@@ -249,10 +243,10 @@ const BottomNav = ({ activeTab, setActiveTab }: { activeTab: string, setActiveTa
 const Chip = ({ label, selected, onClick, multi = false }: { label: string, selected: boolean, onClick: () => void, multi?: boolean }) => (
   <button
     onClick={onClick}
-    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border ${
+    className={`px-3.5 py-1.5 rounded-full text-[13px] font-medium transition-all duration-150 border ${
       selected
-        ? 'bg-treebo-teal/15 text-treebo-teal border-treebo-teal/40 shadow-sm'
-        : 'bg-surface-2 text-gray-400 border-white/10 hover:border-white/20 hover:text-gray-300'
+        ? 'bg-treebo-teal text-white border-treebo-teal shadow-sm'
+        : 'bg-white text-treebo-muted border-treebo-border hover:border-treebo-teal/50 hover:text-treebo-teal'
     }`}
   >
     {label}
@@ -261,43 +255,43 @@ const Chip = ({ label, selected, onClick, multi = false }: { label: string, sele
 
 const HotelCard = ({ hotel, isRecommended }: { hotel: HotelData, isRecommended: boolean }) => (
   <motion.div
-    whileHover={{ y: -4, scale: 1.01 }}
-    transition={{ duration: 0.2 }}
-    className="bg-surface rounded-2xl overflow-hidden border border-white/[0.06] shadow-xl relative group"
+    whileHover={{ y: -2 }}
+    transition={{ duration: 0.15 }}
+    className="bg-white rounded-2xl overflow-hidden border border-treebo-border shadow-card relative group"
   >
     {isRecommended && (
-      <div className="absolute top-3 right-0 z-10 bg-treebo-amber text-treebo-bg text-[10px] font-bold px-3 py-1 rounded-l-full shadow-md flex items-center gap-1">
+      <div className="absolute top-3 right-3 z-10 bg-treebo-teal text-white text-[10px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
         <Sparkles size={9} />
-        AI PICK
+        AI Pick
       </div>
     )}
 
-    <div className={`h-44 bg-gradient-to-br ${hotel.imageGradient} flex items-center justify-center relative overflow-hidden`}>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-      <Hotel size={52} className="text-white/15 relative z-0" />
-      <div className="absolute bottom-3 left-3 z-10 bg-black/40 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-lg border border-white/15 flex items-center gap-1.5">
-        <CheckCircle2 size={9} className="text-treebo-teal" />
-        TREEBO ASSURED
+    <div className={`h-40 bg-gradient-to-br ${hotel.imageGradient} relative overflow-hidden`}>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+      <Hotel size={44} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/20" />
+      <div className="absolute bottom-2.5 left-3 z-10 flex items-center gap-1 bg-black/25 text-white text-[10px] font-medium px-2 py-1 rounded border border-white/20">
+        <CheckCircle2 size={9} />
+        Treebo Assured
       </div>
     </div>
 
     <div className="p-4">
-      <div className="flex justify-between items-start mb-1.5">
-        <h3 className="font-display font-bold text-white leading-tight">{hotel.name}</h3>
-        <div className="flex items-center gap-1 bg-treebo-teal/15 text-treebo-teal px-2 py-0.5 rounded-lg text-xs font-bold flex-shrink-0 ml-2">
-          <Star size={11} fill="currentColor" />
+      <div className="flex justify-between items-start mb-1">
+        <h3 className="font-display font-semibold text-[15px] text-treebo-text leading-snug pr-2">{hotel.name}</h3>
+        <div className="flex items-center gap-0.5 bg-treebo-teal text-white px-1.5 py-0.5 rounded text-[11px] font-semibold flex-shrink-0">
+          <Star size={10} fill="white" />
           {hotel.rating}
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
-        <MapPin size={11} />
+      <div className="flex items-center gap-1 text-treebo-muted text-[12px] mb-3">
+        <MapPin size={10} />
         {hotel.location}
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-4">
+      <div className="flex flex-wrap gap-1 mb-4">
         {hotel.amenities?.slice(0, 3).map((amenity, idx) => (
-          <span key={idx} className="bg-white/5 text-gray-500 text-[10px] px-2 py-0.5 rounded-full border border-white/10">
+          <span key={idx} className="bg-treebo-tag text-treebo-muted text-[11px] px-2 py-0.5 rounded border border-treebo-border">
             {amenity}
           </span>
         ))}
@@ -305,10 +299,10 @@ const HotelCard = ({ hotel, isRecommended }: { hotel: HotelData, isRecommended: 
 
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-xl font-display font-bold text-treebo-teal">₹{hotel.price}</span>
-          <span className="text-[10px] text-gray-600 ml-1">/ night</span>
+          <span className="text-[22px] font-display font-semibold text-treebo-teal leading-none">₹{hotel.price}</span>
+          <span className="text-[11px] text-treebo-muted ml-1">/ night</span>
         </div>
-        <button className="bg-treebo-amber hover:bg-amber-400 text-treebo-bg font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-md shadow-treebo-amber/20 active:scale-95 hover:shadow-treebo-amber/35">
+        <button className="bg-treebo-amber text-white font-semibold text-[12px] px-4 py-2 rounded-lg transition-all hover:bg-amber-500 active:scale-95 shadow-button-amber">
           Book Now
         </button>
       </div>
@@ -469,22 +463,25 @@ export default function App() {
   const renderPlanTab = () => (
     <div className="space-y-7 pb-28">
       <div className="space-y-1 pt-2">
-        <h2 className="text-3xl font-display font-bold text-white leading-tight">Where to next?</h2>
-        <p className="text-gray-500 text-sm">Tell us your vibe, we'll handle the rest.</p>
+        <p className="text-[11px] font-semibold text-treebo-teal uppercase tracking-[0.12em]">Plan your escape</p>
+        <h2 className="text-[28px] font-display font-semibold text-treebo-text leading-tight">
+          Where to <em>next?</em>
+        </h2>
+        <p className="text-[13px] text-treebo-muted">Tell us your vibe, we'll handle the rest.</p>
       </div>
 
       <div className="space-y-6">
         {/* Destination */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex justify-between items-center">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <MapPin size={12} className="text-treebo-teal" /> Destination
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin size={11} className="text-treebo-teal" /> Destination
             </label>
             <button
               onClick={() => setShowMapModal(true)}
-              className="text-[10px] font-bold text-treebo-teal flex items-center gap-1 hover:text-treebo-teal/70 transition-colors"
+              className="text-[11px] font-medium text-treebo-teal flex items-center gap-1 hover:underline underline-offset-2 transition-colors"
             >
-              <MapIcon size={11} /> Map View
+              <MapIcon size={11} /> View on map
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -506,22 +503,22 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
+              className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6"
             >
               <motion.div
-                initial={{ scale: 0.9, y: 20 }}
+                initial={{ scale: 0.95, y: 16 }}
                 animate={{ scale: 1, y: 0 }}
-                className="bg-surface w-full max-w-sm rounded-[28px] overflow-hidden shadow-2xl border border-white/10"
+                className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-treebo-border"
               >
-                <div className="p-6 space-y-4">
+                <div className="p-5 space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-display font-bold text-white">Pick Destination</h3>
-                    <button onClick={() => setShowMapModal(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
-                      <X size={18} className="text-gray-400" />
+                    <h3 className="text-[17px] font-display font-semibold text-treebo-text">Pick Destination</h3>
+                    <button onClick={() => setShowMapModal(false)} className="p-1.5 hover:bg-treebo-tag rounded-lg transition-colors">
+                      <X size={16} className="text-treebo-muted" />
                     </button>
                   </div>
 
-                  <div className="aspect-square bg-surface-2 rounded-2xl relative overflow-hidden border border-white/10">
+                  <div className="aspect-square bg-treebo-tag rounded-xl relative overflow-hidden border border-treebo-border">
                     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
                       <Map
                         style={{ width: '100%', height: '100%' }}
@@ -540,10 +537,10 @@ export default function App() {
                               setShowMapModal(false);
                             }}
                           >
-                            <div className={`p-1.5 rounded-full shadow-lg transition-all ${
-                              tripDetails.destination === name ? 'bg-treebo-amber scale-125' : 'bg-surface-2 border border-white/20 hover:scale-110'
+                            <div className={`p-1.5 rounded-full shadow-md transition-all ${
+                              tripDetails.destination === name ? 'bg-treebo-teal scale-125' : 'bg-white border border-treebo-border hover:scale-110'
                             }`}>
-                              <MapPin size={16} className={tripDetails.destination === name ? 'text-treebo-bg' : 'text-treebo-teal'} />
+                              <MapPin size={14} className={tripDetails.destination === name ? 'text-white' : 'text-treebo-teal'} />
                             </div>
                           </AdvancedMarker>
                         ))}
@@ -551,7 +548,7 @@ export default function App() {
                     </APIProvider>
                   </div>
 
-                  <p className="text-[10px] text-gray-600 text-center">Tap a city pin to set your destination</p>
+                  <p className="text-[11px] text-treebo-muted text-center">Tap a city pin to select your destination</p>
                 </div>
               </motion.div>
             </motion.div>
@@ -561,23 +558,23 @@ export default function App() {
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <Calendar size={12} className="text-treebo-teal" /> Check-in
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar size={11} className="text-treebo-teal" /> Check-in
             </label>
             <input
               type="date"
-              className="w-full bg-surface-2 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-treebo-teal/50 transition-colors [color-scheme:dark]"
+              className="input-field"
               value={tripDetails.checkIn}
               onChange={(e) => setTripDetails({ ...tripDetails, checkIn: e.target.value })}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <Calendar size={12} className="text-treebo-teal" /> Check-out
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar size={11} className="text-treebo-teal" /> Check-out
             </label>
             <input
               type="date"
-              className="w-full bg-surface-2 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-treebo-teal/50 transition-colors [color-scheme:dark]"
+              className="input-field"
               value={tripDetails.checkOut}
               onChange={(e) => setTripDetails({ ...tripDetails, checkOut: e.target.value })}
             />
@@ -587,31 +584,31 @@ export default function App() {
         {/* Guests & Type */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <Users size={12} className="text-treebo-teal" /> Guests
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Users size={11} className="text-treebo-teal" /> Guests
             </label>
-            <div className="flex items-center justify-between bg-surface-2 border border-white/10 rounded-xl px-3 py-2.5">
+            <div className="flex items-center justify-between bg-white border border-treebo-border rounded-xl px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-treebo-teal/15 focus-within:border-treebo-teal transition-all">
               <button
                 onClick={() => setTripDetails({ ...tripDetails, guests: Math.max(1, tripDetails.guests - 1) })}
-                className="p-1 hover:bg-white/10 rounded-lg text-treebo-teal transition-colors"
+                className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"
               >
                 <Minus size={16} />
               </button>
-              <span className="font-bold text-white">{tripDetails.guests}</span>
+              <span className="font-semibold text-treebo-text text-[15px]">{tripDetails.guests}</span>
               <button
                 onClick={() => setTripDetails({ ...tripDetails, guests: Math.min(8, tripDetails.guests + 1) })}
-                className="p-1 hover:bg-white/10 rounded-lg text-treebo-teal transition-colors"
+                className="p-0.5 hover:bg-treebo-tag rounded-md text-treebo-teal transition-colors"
               >
                 <Plus size={16} />
               </button>
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-              <Briefcase size={12} className="text-treebo-teal" /> Trip Type
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
+              <Briefcase size={11} className="text-treebo-teal" /> Trip Type
             </label>
             <select
-              className="w-full bg-surface-2 border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-treebo-teal/50 appearance-none transition-colors"
+              className="input-field appearance-none"
               value={tripDetails.tripType}
               onChange={(e) => setTripDetails({ ...tripDetails, tripType: e.target.value })}
             >
@@ -623,28 +620,28 @@ export default function App() {
         {/* Budget */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500">Budget per night</label>
-            <span className="text-sm font-bold text-treebo-teal bg-treebo-teal/10 px-3 py-1 rounded-lg">₹{tripDetails.budget}</span>
+            <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider">Budget per night</label>
+            <span className="text-[13px] font-semibold text-treebo-teal bg-treebo-teal-light px-3 py-1 rounded-lg">₹{tripDetails.budget}</span>
           </div>
           <input
             type="range"
             min="500"
             max="5000"
             step="100"
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-treebo-teal"
+            className="w-full cursor-pointer"
             value={tripDetails.budget}
             onChange={(e) => setTripDetails({ ...tripDetails, budget: parseInt(e.target.value) })}
           />
-          <div className="flex justify-between text-[10px] text-gray-600 font-bold">
+          <div className="flex justify-between text-[11px] text-treebo-muted font-medium">
             <span>₹500</span>
-            <span>₹5000</span>
+            <span>₹5,000</span>
           </div>
         </div>
 
         {/* Vibe */}
-        <div className="space-y-3">
-          <label className="text-[11px] font-bold uppercase tracking-widest text-gray-500 flex items-center gap-2">
-            <Sparkles size={12} className="text-treebo-teal" /> Trip Vibe
+        <div className="space-y-2.5">
+          <label className="text-[11px] font-semibold text-treebo-muted uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles size={11} className="text-treebo-teal" /> Trip Vibe
           </label>
           <div className="flex flex-wrap gap-2">
             {VIBES.map(vibe => (
@@ -665,11 +662,11 @@ export default function App() {
 
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-2xl flex items-start gap-3 text-sm"
+            className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3 text-[13px]"
           >
-            <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-red-500" />
             <span>{error}</span>
           </motion.div>
         )}
@@ -677,17 +674,17 @@ export default function App() {
         <button
           onClick={generateTripPlan}
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-treebo-amber to-amber-500 text-treebo-bg font-black py-4 rounded-2xl shadow-lg shadow-treebo-amber/25 transition-all active:scale-95 hover:shadow-treebo-amber/40 flex items-center justify-center gap-2 disabled:opacity-60"
+          className="w-full bg-treebo-amber text-white font-semibold py-4 rounded-xl text-[15px] transition-all active:scale-[0.98] hover:bg-amber-500 flex items-center justify-center gap-2 disabled:opacity-60 shadow-button-amber"
         >
           {isLoading ? (
             <>
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" size={19} />
               <span>Crafting your trip...</span>
             </>
           ) : (
             <>
               <span>Generate My Trip Plan</span>
-              <Sparkles size={20} />
+              <Sparkles size={18} />
             </>
           )}
         </button>
@@ -696,21 +693,23 @@ export default function App() {
   );
 
   const renderHotelsTab = () => (
-    <div className="space-y-6 pb-28">
+    <div className="space-y-5 pb-28">
       <div className="flex justify-between items-center pt-2">
-        <h2 className="text-2xl font-display font-bold text-white">Treebo Hotels</h2>
-        <div className="text-xs font-bold text-treebo-teal bg-treebo-teal/10 px-3 py-1 rounded-lg flex items-center gap-1.5">
-          <MapPin size={11} /> {tripDetails.destination}
+        <div>
+          <p className="text-[11px] font-semibold text-treebo-teal uppercase tracking-[0.12em] mb-0.5">Available properties</p>
+          <h2 className="text-[24px] font-display font-semibold text-treebo-text leading-tight">
+            Hotels in <em>{tripDetails.destination}</em>
+          </h2>
         </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        <button className="bg-treebo-teal text-treebo-bg px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shadow-md shadow-treebo-teal/20">All Hotels</button>
-        <button className="bg-surface-2 text-gray-400 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap hover:text-gray-200 transition-colors">Price: Low to High</button>
-        <button className="bg-surface-2 text-gray-400 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap hover:text-gray-200 transition-colors">Top Rated</button>
+        <button className="bg-treebo-teal text-white px-4 py-2 rounded-full text-[12px] font-medium whitespace-nowrap">All Hotels</button>
+        <button className="bg-white text-treebo-muted border border-treebo-border px-4 py-2 rounded-full text-[12px] font-medium whitespace-nowrap hover:border-treebo-teal/40 transition-colors">Price: Low–High</button>
+        <button className="bg-white text-treebo-muted border border-treebo-border px-4 py-2 rounded-full text-[12px] font-medium whitespace-nowrap hover:border-treebo-teal/40 transition-colors">Top Rated</button>
       </div>
 
-      <div className="grid grid-cols-1 gap-5">
+      <div className="grid grid-cols-1 gap-4">
         {filteredHotels.map(hotel => (
           <HotelCard
             key={hotel.id}
@@ -725,71 +724,73 @@ export default function App() {
   const renderItineraryTab = () => {
     if (!generatedPlan) {
       return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6">
-          <div className="w-24 h-24 bg-surface-2 rounded-3xl flex items-center justify-center text-treebo-teal/25 border border-white/5">
-            <ClipboardList size={44} />
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-5 px-4">
+          <div className="w-20 h-20 rounded-2xl bg-treebo-tag border border-treebo-border flex items-center justify-center text-gray-300">
+            <ClipboardList size={36} />
           </div>
           <div className="space-y-2 max-w-xs">
-            <h3 className="text-xl font-display font-bold text-white">No itinerary yet</h3>
-            <p className="text-gray-500 text-sm">Complete your trip plan to unlock your personalized itinerary ✨</p>
+            <h3 className="text-xl font-display font-semibold text-treebo-text">No itinerary yet</h3>
+            <p className="text-treebo-muted text-[13px] leading-relaxed">Generate a trip plan first to see your personalized day-by-day schedule.</p>
           </div>
           <button
             onClick={() => setActiveTab('plan')}
-            className="bg-treebo-teal text-treebo-bg px-8 py-3 rounded-2xl font-bold shadow-lg shadow-treebo-teal/25 active:scale-95 hover:shadow-treebo-teal/40 transition-all"
+            className="bg-treebo-teal text-white px-8 py-3 rounded-xl font-semibold text-[14px] shadow-button active:scale-[0.98] hover:bg-treebo-teal-dark transition-all"
           >
-            Go to Planner
+            Start Planning
           </button>
         </div>
       );
     }
 
     return (
-      <div className="space-y-6 pb-28">
+      <div className="space-y-5 pb-28">
         {/* Summary Card */}
-        <div className="bg-gradient-to-br from-treebo-teal-dark via-[#0a5c54] to-[#083d37] rounded-3xl p-6 text-white shadow-xl relative overflow-hidden border border-treebo-teal/20">
-          <div className="absolute -right-10 -top-10 w-52 h-52 bg-treebo-teal/10 rounded-full blur-3xl" />
-          <div className="absolute -left-5 -bottom-10 w-40 h-40 bg-treebo-amber/5 rounded-full blur-3xl" />
+        <div className="bg-treebo-teal rounded-2xl p-5 text-white relative overflow-hidden">
+          <div className="absolute inset-0 dot-pattern opacity-100" />
           <div className="relative z-10">
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-3">
               <div>
-                <h2 className="text-2xl font-display font-bold">{generatedPlan.trip_summary?.destination || tripDetails.destination}</h2>
-                <p className="text-xs opacity-60 font-medium mt-0.5">{tripDetails.checkIn} — {tripDetails.checkOut}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50 mb-1">Your itinerary</p>
+                <h2 className="text-[22px] font-display font-semibold leading-tight">
+                  {generatedPlan.trip_summary?.destination || tripDetails.destination}
+                </h2>
+                <p className="text-[12px] text-white/60 mt-0.5">{tripDetails.checkIn} — {tripDetails.checkOut}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/10">
-                {generatedPlan.days?.length || 0} Days
+              <div className="bg-white/15 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-white/10">
+                {generatedPlan.days?.length || 0} days
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 mb-5">
+            <div className="flex flex-wrap gap-1.5 mb-4">
               {generatedPlan.trip_summary?.vibe_tags?.map((tag, i) => (
-                <span key={i} className="bg-white/10 text-white/70 text-[10px] px-2.5 py-1 rounded-lg border border-white/10">
-                  #{tag}
+                <span key={i} className="bg-white/10 text-white/70 text-[11px] px-2.5 py-0.5 rounded-full border border-white/10">
+                  {tag}
                 </span>
               ))}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-white/10">
+            <div className="flex items-end justify-between pt-4 border-t border-white/15">
               <div>
-                <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">Est. Budget</p>
-                <p className="text-2xl font-display font-bold">₹{generatedPlan.trip_summary?.total_estimated_cost_inr || 0}</p>
+                <p className="text-[10px] text-white/50 font-medium uppercase tracking-wider mb-0.5">Est. total</p>
+                <p className="text-[26px] font-display font-semibold leading-none">₹{generatedPlan.trip_summary?.total_estimated_cost_inr?.toLocaleString('en-IN') || 0}</p>
               </div>
-              <div className="text-right max-w-[55%]">
-                <p className="text-[10px] opacity-50 uppercase font-bold tracking-wider">AI Tip</p>
-                <p className="text-xs italic opacity-80 leading-relaxed">"{generatedPlan.trip_summary?.top_tip || 'Enjoy your trip!'}"</p>
+              <div className="text-right max-w-[52%]">
+                <p className="text-[10px] text-white/50 font-medium uppercase tracking-wider mb-1">AI Tip</p>
+                <p className="text-[12px] italic text-white/75 leading-snug">"{generatedPlan.trip_summary?.top_tip || 'Enjoy your trip!'}"</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2.5">
           <button
             onClick={() => setToast("Itinerary saved to your Treebo account!")}
-            className="flex-1 bg-surface-2 border border-white/10 text-gray-300 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95 hover:bg-surface-3 transition-colors"
+            className="flex-1 bg-white border border-treebo-border text-treebo-muted py-2.5 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] hover:border-treebo-teal/40 hover:text-treebo-teal transition-all shadow-card"
           >
-            <Download size={15} /> Save
+            <Download size={14} /> Save
           </button>
-          <button className="flex-1 bg-surface-2 border border-white/10 text-gray-300 py-3 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 active:scale-95 hover:bg-surface-3 transition-colors">
-            <Share2 size={15} /> Share
+          <button className="flex-1 bg-white border border-treebo-border text-treebo-muted py-2.5 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] hover:border-treebo-teal/40 hover:text-treebo-teal transition-all shadow-card">
+            <Share2 size={14} /> Share
           </button>
         </div>
 
@@ -798,36 +799,36 @@ export default function App() {
           {generatedPlan.days?.map((day, idx) => (
             <div key={idx} className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-treebo-amber/15 border border-treebo-amber/25 text-treebo-amber flex items-center justify-center font-display font-bold text-base">
+                <div className="w-9 h-9 rounded-xl bg-treebo-amber text-white flex items-center justify-center font-display font-semibold text-[15px] shadow-button-amber">
                   {day.day}
                 </div>
-                <h3 className="font-display font-bold text-white">{day.label}</h3>
+                <h3 className="font-display font-semibold text-treebo-text text-[16px]">{day.label}</h3>
               </div>
 
               {['morning', 'afternoon', 'evening'].map((time) => {
                 const activities = (day[time as keyof DayPlan] as Activity[]) || [];
                 return (
-                  <div key={time} className="space-y-3 relative pl-5 border-l-2 border-dashed border-white/10 ml-5">
-                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-treebo-bg border-2 border-treebo-teal shadow-sm shadow-treebo-teal/30" />
-                    <h4 className="text-[10px] uppercase font-black text-gray-600 tracking-widest mb-2">{time}</h4>
+                  <div key={time} className="space-y-2.5 relative pl-4 border-l-2 border-treebo-border ml-4">
+                    <div className="absolute -left-[5px] top-[2px] w-2.5 h-2.5 rounded-full bg-treebo-teal" />
+                    <h4 className="text-[10px] font-semibold text-treebo-muted uppercase tracking-wider mb-2">{time}</h4>
                     {activities.map((act, i) => (
-                      <div key={i} className="bg-surface-2 p-4 rounded-2xl border border-white/[0.06] space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div className="flex gap-2">
-                            <span className="text-xl">{act.emoji}</span>
-                            <div>
-                              <h5 className="font-bold text-sm text-white">{act.name}</h5>
-                              <p className="text-xs text-gray-500 line-clamp-1">{act.description}</p>
+                      <div key={i} className="bg-white p-4 rounded-xl border border-treebo-border shadow-card space-y-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex gap-2.5 flex-1">
+                            <span className="text-xl leading-none mt-0.5">{act.emoji}</span>
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-semibold text-[14px] text-treebo-text leading-snug">{act.name}</h5>
+                              <p className="text-[12px] text-treebo-muted line-clamp-1 mt-0.5">{act.description}</p>
                             </div>
                           </div>
-                          <span className="text-[10px] font-bold text-treebo-teal bg-treebo-teal/10 px-2 py-0.5 rounded-lg flex-shrink-0 ml-2">₹{act.cost_inr}</span>
+                          <span className="text-[11px] font-semibold text-treebo-teal bg-treebo-teal-light px-2 py-0.5 rounded-md flex-shrink-0">₹{act.cost_inr}</span>
                         </div>
-                        <div className="flex items-center gap-4 text-[10px] font-bold text-gray-600">
+                        <div className="flex items-center gap-4 text-[11px] text-treebo-muted">
                           <div className="flex items-center gap-1">
                             <Clock size={11} /> {act.duration_hours}h
                           </div>
                           <div className="flex items-center gap-1">
-                            <MapPin size={11} /> {act.distance_from_hotel_km}km
+                            <MapPin size={11} /> {act.distance_from_hotel_km}km away
                           </div>
                         </div>
                       </div>
@@ -839,18 +840,18 @@ export default function App() {
               {/* Stay Tonight Card */}
               <div
                 onClick={() => setActiveTab('hotels')}
-                className="bg-treebo-amber/10 border border-treebo-amber/20 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:bg-treebo-amber/15 transition-colors"
+                className="bg-treebo-amber-light border border-treebo-amber/25 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-treebo-amber/50 transition-colors group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-treebo-amber/15 border border-treebo-amber/25 flex items-center justify-center">
-                    <Hotel size={18} className="text-treebo-amber" />
+                  <div className="w-9 h-9 rounded-lg bg-treebo-amber flex items-center justify-center">
+                    <Hotel size={16} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase font-bold text-treebo-amber/60">Stay Tonight</p>
-                    <p className="text-sm font-bold text-white">{filteredHotels[0]?.name || "Treebo Trend Hotel"}</p>
+                    <p className="text-[10px] font-semibold text-treebo-amber uppercase tracking-wider">Stay tonight</p>
+                    <p className="text-[13px] font-semibold text-treebo-text mt-0.5">{filteredHotels[0]?.name || "Treebo Trend Hotel"}</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-treebo-amber/50" />
+                <ArrowRight size={16} className="text-treebo-amber group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
           ))}
@@ -861,22 +862,22 @@ export default function App() {
 
   const renderChatTab = () => (
     <div className="flex flex-col h-[calc(100vh-180px)] pb-28">
-      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 p-2">
+      <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 p-1">
         {chatHistory.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-            <div className="w-16 h-16 bg-treebo-teal/10 border border-treebo-teal/20 rounded-3xl flex items-center justify-center">
-              <Sparkles size={28} className="text-treebo-teal" />
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-5 px-4">
+            <div className="w-14 h-14 rounded-2xl bg-treebo-teal-light flex items-center justify-center">
+              <Sparkles size={24} className="text-treebo-teal" />
             </div>
-            <div className="space-y-1">
-              <h3 className="font-display font-bold text-white text-lg">Treebo AI Assistant</h3>
-              <p className="text-xs text-gray-500">Ask me anything about your trip!</p>
+            <div className="space-y-1.5">
+              <h3 className="font-display font-semibold text-treebo-text text-[18px]">Treebo AI Assistant</h3>
+              <p className="text-[13px] text-treebo-muted">Ask me anything about your trip to {tripDetails.destination}.</p>
             </div>
-            <div className="flex flex-wrap justify-center gap-2 max-w-xs">
+            <div className="flex flex-wrap justify-center gap-2 max-w-[280px]">
               {["What should I pack?", "Best local food?", "Is it safe solo?", "Weekend activities"].map(prompt => (
                 <button
                   key={prompt}
                   onClick={() => handleSendMessage(prompt)}
-                  className="bg-surface-2 border border-white/10 text-gray-400 px-4 py-2 rounded-xl text-xs font-medium hover:border-treebo-teal/30 hover:text-gray-200 transition-colors"
+                  className="bg-white border border-treebo-border text-treebo-muted px-4 py-2 rounded-full text-[12px] font-medium hover:border-treebo-teal/50 hover:text-treebo-teal transition-colors"
                 >
                   {prompt}
                 </button>
@@ -888,23 +889,23 @@ export default function App() {
         {chatHistory.map((msg, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[82%] p-4 rounded-2xl text-sm ${
+            <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed ${
               msg.role === 'user'
-                ? 'bg-treebo-teal text-treebo-bg font-medium rounded-tr-sm'
-                : 'bg-surface-2 text-gray-100 border border-white/[0.06] rounded-tl-sm flex gap-3'
+                ? 'bg-treebo-teal text-white rounded-br-sm font-medium'
+                : 'bg-white text-treebo-text border border-treebo-border rounded-bl-sm shadow-card flex gap-2.5'
             }`}>
               {msg.role === 'model' && (
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-treebo-teal to-treebo-teal-dark flex-shrink-0 flex items-center justify-center text-treebo-bg text-[10px] font-black shadow-sm">
+                <div className="w-6 h-6 rounded-md bg-treebo-teal flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold mt-0.5">
                   T
                 </div>
               )}
               {msg.role === 'model' ? (
                 <div
-                  className="prose prose-sm max-w-none [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1 [&_li]:mb-1 [&_p]:mb-1 [&_strong]:font-semibold [&_strong]:text-white"
+                  className="[&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1.5 [&_li]:mb-1 [&_p]:mb-1.5 [&_strong]:font-semibold [&_strong]:text-treebo-text"
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
                 />
               ) : (
@@ -916,29 +917,29 @@ export default function App() {
 
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-surface-2 p-4 rounded-2xl rounded-tl-sm border border-white/[0.06] flex gap-2 items-center">
-              <div className="w-1.5 h-1.5 bg-treebo-teal/50 rounded-full animate-bounce" />
-              <div className="w-1.5 h-1.5 bg-treebo-teal/50 rounded-full animate-bounce [animation-delay:0.2s]" />
-              <div className="w-1.5 h-1.5 bg-treebo-teal/50 rounded-full animate-bounce [animation-delay:0.4s]" />
+            <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-treebo-border shadow-card flex gap-1.5 items-center">
+              <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce" />
+              <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.15s]" />
+              <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.3s]" />
             </div>
           </div>
         )}
         <div ref={chatEndRef} />
       </div>
 
-      <div className="fixed bottom-20 left-0 right-0 px-4 py-3 bg-treebo-bg/90 backdrop-blur-xl border-t border-white/[0.06] max-w-[430px] mx-auto">
+      <div className="fixed bottom-[64px] left-0 right-0 px-4 py-3 bg-treebo-bg/95 backdrop-blur-sm border-t border-treebo-border max-w-[430px] mx-auto">
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="Ask Treebo AI..."
-            className="flex-1 bg-surface-2 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-treebo-teal/40 transition-colors"
+            placeholder="Ask anything about your trip..."
+            className="flex-1 bg-white border border-treebo-border rounded-xl px-4 py-3 text-[14px] text-treebo-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-treebo-teal/15 focus:border-treebo-teal transition-all"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
           />
           <button
             onClick={() => handleSendMessage()}
-            className="bg-treebo-teal text-treebo-bg p-3 rounded-2xl shadow-lg shadow-treebo-teal/25 active:scale-90 transition-all hover:shadow-treebo-teal/40"
+            className="bg-treebo-teal text-white p-3 rounded-xl shadow-button active:scale-90 transition-all hover:bg-treebo-teal-dark"
           >
             <Send size={18} />
           </button>
@@ -948,18 +949,18 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-treebo-bg flex justify-center">
-      <div className="w-full max-w-[430px] bg-treebo-bg min-h-screen relative shadow-2xl shadow-black/50 flex flex-col">
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+      <div className="w-full max-w-[430px] bg-treebo-bg min-h-screen relative shadow-xl flex flex-col">
         <Header />
 
-        <main className="flex-1 pt-24 px-5 overflow-y-auto no-scrollbar">
+        <main className="flex-1 pt-[60px] px-5 overflow-y-auto no-scrollbar">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
             >
               {activeTab === 'plan' && renderPlanTab()}
               {activeTab === 'hotels' && renderHotelsTab()}
@@ -975,12 +976,12 @@ export default function App() {
         <AnimatePresence>
           {toast && (
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 50 }}
-              className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[100] bg-surface-3 border border-white/10 text-white px-6 py-3 rounded-2xl text-sm font-bold shadow-2xl shadow-black/50 flex items-center gap-2 whitespace-nowrap backdrop-blur-xl"
+              exit={{ opacity: 0, y: 40 }}
+              className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] bg-treebo-teal text-white px-5 py-3 rounded-xl text-[13px] font-semibold shadow-lg flex items-center gap-2 whitespace-nowrap"
             >
-              <CheckCircle2 size={16} className="text-treebo-teal" />
+              <CheckCircle2 size={15} />
               {toast}
             </motion.div>
           )}
