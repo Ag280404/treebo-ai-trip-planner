@@ -107,36 +107,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const prompt = `Plan a ${planDays}-day trip to ${destination} for ${guests} ${tripType} traveler(s). Budget per night: ₹${budget}. Vibe: ${(vibe || []).join(', ')}. Dates: ${checkIn} to ${checkOut}. Generate exactly ${planDays} days. Keep each activity description under 15 words.`;
 
-  // Model fallback chain — ordered by speed/availability
-  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'];
+  // Gemini model fallback chain — 1.5 models are deprecated, use 2.x only
+  const geminiModels = ['gemini-2.0-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-flash'];
 
-  let lastErr: any;
-  for (let i = 0; i < models.length; i++) {
-    const model = models[i];
+  for (let i = 0; i < geminiModels.length; i++) {
+    const model = geminiModels[i];
     try {
       const response = await callGemini(ai, model, prompt);
       let text = response.text || '{}';
       text = text.replace(/```json\n?/, '').replace(/```\n?/, '').trim();
       const plan = JSON.parse(text);
-      console.log(`[generate-trip] Success with model: ${model}`);
+      console.log(`[generate-trip] Success with Gemini model: ${model}`);
       return res.status(200).json(plan);
     } catch (err: any) {
-      lastErr = err;
       const status = err?.status || err?.code;
-      const isOverloaded = status === 503 || status === 429 || err?.message?.includes('503') || err?.message?.includes('UNAVAILABLE') || err?.message?.includes('429');
+      const isOverloaded = status === 503 || status === 429 ||
+        err?.message?.includes('503') || err?.message?.includes('UNAVAILABLE') || err?.message?.includes('429');
       console.error(`[generate-trip] ${model} failed:`, status, err?.message);
 
-      if (!isOverloaded) {
-        // Non-transient error — don't retry
-        return res.status(500).json({ error: err?.message || 'Failed to generate trip plan' });
-      }
-
-      // Wait a moment before trying next model
-      if (i < models.length - 1) {
-        await new Promise(r => setTimeout(r, 1500));
-      }
+      if (!isOverloaded) break; // non-transient — skip to Groq
+      if (i < geminiModels.length - 1) await new Promise(r => setTimeout(r, 1500));
     }
   }
 
-  return res.status(503).json({ error: 'Gemini AI is currently busy. Please try again in a moment.' });
+  // Final fallback: Groq (free, fast, OpenAI-compatible)
+  const groqKey = process.env.GROQ_API_KEY;
+  if (groqKey) {
+    try {
+      console.log('[generate-trip] Trying Groq fallback...');
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: `You are Treebo's AI Trip Planner. Generate a concise day-by-day itinerary as valid JSON only (no markdown). Each day has morning (2 activities), afternoon (2 activities), evening (1-2 activities). Keep descriptions under 15 words. Return JSON matching exactly this structure: { "trip_summary": { "destination": string, "total_estimated_cost_inr": number, "top_tip": string, "vibe_tags": string[] }, "days": [{ "day": number, "label": string, "morning": [{ "name": string, "emoji": string, "description": string, "duration_hours": number, "cost_inr": number, "distance_from_hotel_km": number }], "afternoon": [...same...], "evening": [...same...] }] }`
+            },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7,
+          response_format: { type: 'json_object' }
+        })
+      });
+      const groqData = await groqRes.json() as any;
+      const text = groqData.choices?.[0]?.message?.content || '{}';
+      const plan = JSON.parse(text);
+      console.log('[generate-trip] Success with Groq fallback');
+      return res.status(200).json(plan);
+    } catch (err: any) {
+      console.error('[generate-trip] Groq fallback failed:', err?.message);
+    }
+  }
+
+  return res.status(503).json({ error: 'AI services are currently busy. Please try again in a moment.' });
 }
