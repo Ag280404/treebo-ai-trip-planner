@@ -706,7 +706,7 @@ export default function App() {
         <button
           onClick={generateTripPlan}
           disabled={isLoading}
-          className="w-full bg-treebo-amber text-white font-semibold py-4 rounded-xl text-[15px] transition-all active:scale-[0.98] hover:bg-amber-500 flex items-center justify-center gap-2 disabled:opacity-60 shadow-button-amber"
+          className="w-full bg-treebo-teal text-white font-semibold py-4 rounded-xl text-[15px] transition-all active:scale-[0.98] hover:bg-treebo-teal-dark flex items-center justify-center gap-2 disabled:opacity-60 shadow-button"
         >
           {isLoading ? (
             <>
