@@ -130,16 +130,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // Final fallback: Groq (free, fast, OpenAI-compatible)
-  const groqKey = process.env.GROQ_API_KEY;
-  if (groqKey) {
+  // Final fallback: OpenRouter (free models, OpenAI-compatible)
+  const orKey = process.env.OPENROUTER_API_KEY;
+  if (orKey) {
     try {
-      console.log('[generate-trip] Trying Groq fallback...');
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      console.log('[generate-trip] Trying OpenRouter fallback...');
+      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${orKey}`,
+          'HTTP-Referer': 'https://treebo-ai-trip-planner.vercel.app',
+          'X-Title': 'Treebo AI Trip Planner',
+        },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'meta-llama/llama-3.3-8b-instruct:free',
           messages: [
             {
               role: 'system',
@@ -151,13 +156,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           response_format: { type: 'json_object' }
         })
       });
-      const groqData = await groqRes.json() as any;
-      const text = groqData.choices?.[0]?.message?.content || '{}';
+      const orData = await orRes.json() as any;
+      const text = orData.choices?.[0]?.message?.content || '{}';
       const plan = JSON.parse(text);
-      console.log('[generate-trip] Success with Groq fallback');
+      console.log('[generate-trip] Success with OpenRouter fallback');
       return res.status(200).json(plan);
     } catch (err: any) {
-      console.error('[generate-trip] Groq fallback failed:', err?.message);
+      console.error('[generate-trip] OpenRouter fallback failed:', err?.message);
     }
   }
 

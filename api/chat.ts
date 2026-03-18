@@ -51,17 +51,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isRateLimit = geminiErr?.message?.includes('429') || geminiErr?.message?.includes('RESOURCE_EXHAUSTED');
     const isOverloaded = geminiErr?.message?.includes('503') || geminiErr?.message?.includes('UNAVAILABLE');
 
-    // Fall back to Groq if rate-limited or overloaded
-    if ((isRateLimit || isOverloaded) && process.env.GROQ_API_KEY) {
+    // Fall back to OpenRouter if rate-limited or overloaded
+    if ((isRateLimit || isOverloaded) && process.env.OPENROUTER_API_KEY) {
       try {
-        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+            Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'HTTP-Referer': 'https://treebo-ai-trip-planner.vercel.app',
+            'X-Title': 'Treebo AI Trip Planner',
           },
           body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
+            model: 'meta-llama/llama-3.3-8b-instruct:free',
             messages: [
               { role: 'system', content: systemInstruction },
               ...(history || []).map((m: { role: string; content: string }) => ({
@@ -75,16 +77,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }),
         });
 
-        if (!groqRes.ok) {
-          const groqErr = await groqRes.json().catch(() => ({}));
-          throw new Error(groqErr?.error?.message || `Groq error: ${groqRes.status}`);
+        if (!orRes.ok) {
+          const orErr = await orRes.json().catch(() => ({}));
+          throw new Error(orErr?.error?.message || `OpenRouter error: ${orRes.status}`);
         }
 
-        const groqData = await groqRes.json();
-        const reply = groqData.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that.";
+        const orData = await orRes.json();
+        const reply = orData.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that.";
         return res.status(200).json({ reply });
-      } catch (groqErr: any) {
-        console.error('Groq chat fallback failed:', groqErr?.message);
+      } catch (orErr: any) {
+        console.error('OpenRouter chat fallback failed:', orErr?.message);
       }
     }
 
