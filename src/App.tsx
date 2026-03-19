@@ -1110,35 +1110,61 @@ export default function App() {
   );
 
   const renderChatTab = () => {
-    // Fix 6: context-aware quick prompts
-    const dest = tripDetails.destination || 'your destination';
-    const quickPrompts = [
-      `Best food in ${dest}?`,
-      'What should I pack?',
-      `Hidden gems in ${dest}`,
-      'Budget tips for this trip',
-    ];
+    const dest = tripDetails.destination;
+    // Fix 5: destination-specific prompts when trip is planned, generic when not
+    const quickPrompts = dest
+      ? [
+          `Best food spots in ${dest}?`,
+          `Hidden gems in ${dest}`,
+          'What should I pack?',
+          'Budget tips for this trip',
+        ]
+      : [
+          'How do I plan a budget trip in India?',
+          'Best hill stations to visit?',
+          'Tips for solo travel in India',
+          'What to pack for a weekend trip?',
+        ];
+
     return (
-    <div className="flex flex-col flex-1 min-h-0 -mx-5">
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Fix 4F: context strip — only shown when trip is planned */}
+      {dest && tripDetails.checkIn && tripDetails.checkOut && (
+        <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-treebo-teal-light border-b border-treebo-teal/15">
+          <MapPin size={12} className="text-treebo-teal flex-shrink-0" />
+          <span className="text-[12px] font-medium text-treebo-teal truncate">
+            {dest} · {formatDate(tripDetails.checkIn)} – {formatDate(tripDetails.checkOut)}
+          </span>
+        </div>
+      )}
+
       {/* Messages scroll area */}
-      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5">
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4">
         {chatHistory.length === 0 ? (
-          // Fix 1: justify-center + gap-6 eliminates dead whitespace — no flex-1 spacer needed
-          <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
-            <div className="flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-2xl bg-treebo-teal-light flex items-center justify-center mb-3">
-                <Sparkles size={24} className="text-treebo-teal" />
+          // Fix 3: no spacer div — justify-center centres content, gap-8 separates sections
+          <div className="flex flex-col items-center justify-center h-full gap-8 px-1">
+            <div className="flex flex-col items-center text-center gap-3">
+              {/* Fix 4B: gradient icon background */}
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, #0B4F41 0%, #1a7a65 100%)' }}
+              >
+                <Sparkles size={26} className="text-white" />
               </div>
-              <h3 className="font-display font-semibold text-treebo-text text-[18px]">Treebo AI Assistant</h3>
-              <p className="text-[13px] text-treebo-muted mt-1">
-                Ask me anything about your trip{tripDetails.destination ? ` to ${tripDetails.destination}.` : '.'}
-              </p>
+              <div>
+                <h3 className="font-display font-semibold text-treebo-text text-[18px]">Treebo AI Assistant</h3>
+                <p className="text-[13px] text-treebo-muted mt-1">
+                  {dest ? `Ask me anything about your trip to ${dest}.` : 'Ask me anything about travel in India.'}
+                </p>
+              </div>
             </div>
+            {/* Fix 4A: quick prompts with ChevronRight icon + shadow */}
             <div className="w-full space-y-2">
               {quickPrompts.map((p) => (
                 <button key={p} onClick={() => handleSendMessage(p)}
-                  className="w-full text-left px-4 py-3 rounded-2xl border border-treebo-border bg-white text-[13px] text-treebo-text hover:border-treebo-teal hover:bg-treebo-teal/5 transition-colors active:scale-[0.98]">
-                  {p}
+                  className="w-full text-left px-4 py-3 rounded-2xl border border-treebo-border bg-white shadow-card text-[13px] text-treebo-text hover:border-treebo-teal hover:bg-treebo-teal-light transition-colors active:scale-[0.98] flex items-center justify-between gap-2">
+                  <span>{p}</span>
+                  <ChevronRight size={14} className="text-treebo-muted flex-shrink-0" />
                 </button>
               ))}
             </div>
@@ -1147,8 +1173,13 @@ export default function App() {
           <div className="space-y-3 py-4">
             {chatHistory.map((msg, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed ${msg.role === 'user' ? 'bg-treebo-teal text-white rounded-br-sm font-medium' : 'bg-white text-treebo-text border border-treebo-border rounded-bl-sm shadow-card flex gap-2.5'}`}>
-                  {msg.role === 'model' && <div className="w-6 h-6 rounded-md bg-treebo-teal flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold mt-0.5">T</div>}
+                {/* Fix 4D: message bubble tails — user: rounded-tr-md, model: rounded-tl-md */}
+                <div className={`max-w-[82%] px-4 py-3 text-[14px] leading-relaxed ${msg.role === 'user' ? 'bg-treebo-teal text-white rounded-2xl rounded-tr-md font-medium' : 'bg-white text-treebo-text border border-treebo-border rounded-2xl rounded-tl-md shadow-card flex gap-2.5'}`}>
+                  {/* Fix 4E: typing indicator T avatar aligned to bubble */}
+                  {msg.role === 'model' && (
+                    <div className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold mt-0.5"
+                      style={{ background: 'linear-gradient(135deg, #0B4F41 0%, #1a7a65 100%)' }}>T</div>
+                  )}
                   {msg.role === 'model' ? (
                     <div className="[&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1.5 [&_li]:mb-1 [&_p]:mb-1.5 [&_strong]:font-semibold [&_strong]:text-treebo-text" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
                   ) : <div>{msg.content}</div>}
@@ -1157,10 +1188,15 @@ export default function App() {
             ))}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm border border-treebo-border shadow-card flex gap-1.5 items-center">
-                  <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce" />
-                  <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.15s]" />
-                  <div className="w-1.5 h-1.5 bg-treebo-teal/40 rounded-full animate-bounce [animation-delay:0.3s]" />
+                <div className="bg-white px-3 py-3 rounded-2xl rounded-tl-md border border-treebo-border shadow-card flex gap-2 items-center">
+                  {/* Fix 4E: T avatar on typing indicator too */}
+                  <div className="w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold"
+                    style={{ background: 'linear-gradient(135deg, #0B4F41 0%, #1a7a65 100%)' }}>T</div>
+                  <div className="flex gap-1 items-center">
+                    <div className="w-1.5 h-1.5 bg-treebo-teal/50 rounded-full animate-bounce" />
+                    <div className="w-1.5 h-1.5 bg-treebo-teal/50 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                    <div className="w-1.5 h-1.5 bg-treebo-teal/50 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                  </div>
                 </div>
               </div>
             )}
@@ -1169,20 +1205,22 @@ export default function App() {
         )}
       </div>
 
-      {/* Fix 2: input bar with iOS safe-area padding so it never hides behind home indicator */}
+      {/* Fix 2: input bar with top shadow + iOS safe-area bottom padding */}
       <div
-        className="flex-shrink-0 px-4 pt-3 border-t border-treebo-border bg-treebo-bg/95 backdrop-blur-sm"
-        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+        className="flex-shrink-0 px-4 pt-3 bg-treebo-bg/95 backdrop-blur-sm"
+        style={{
+          paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          boxShadow: '0 -4px 12px rgba(0,0,0,0.04)',
+        }}
       >
-        <div className="flex gap-2">
-          {/* Fix 7: mobile-optimised input attributes */}
+        <div className="flex gap-2 items-center">
           <input
             type="text"
             inputMode="text"
             autoComplete="off"
             autoCorrect="off"
             placeholder="Ask anything about your trip..."
-            className="flex-1 bg-white border border-treebo-border rounded-full px-4 py-3 text-[14px] text-treebo-text placeholder:text-gray-400 focus:outline-none focus:border-treebo-teal transition-all"
+            className="flex-1 bg-white border border-treebo-border rounded-full px-4 py-2.5 text-[14px] text-treebo-text placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-treebo-teal/20 focus:border-treebo-teal transition-all"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
@@ -1190,9 +1228,9 @@ export default function App() {
           <button
             onClick={() => handleSendMessage()}
             disabled={!chatInput.trim() || isTyping}
-            className={`w-12 h-12 bg-treebo-teal text-white rounded-full flex items-center justify-center shadow-button active:scale-90 transition-all hover:bg-treebo-teal-dark flex-shrink-0 ${!chatInput.trim() || isTyping ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className="w-11 h-11 flex-shrink-0 bg-treebo-teal text-white rounded-full flex items-center justify-center shadow-button active:scale-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-treebo-teal-dark"
           >
-            <Send size={18} />
+            <Send size={16} />
           </button>
         </div>
       </div>
