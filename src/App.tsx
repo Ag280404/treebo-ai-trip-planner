@@ -341,7 +341,10 @@ const BottomNav = ({
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-treebo-border flex items-stretch pb-[env(safe-area-inset-bottom,0px)]">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-treebo-border flex items-center"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', height: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}
+    >
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -349,7 +352,7 @@ const BottomNav = ({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-all duration-200 relative ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}
+            className={`flex-1 flex flex-col items-center justify-center pt-2 pb-1 gap-0.5 transition-all duration-200 relative ${isActive ? 'text-treebo-teal' : 'text-gray-400'}`}
           >
             {isActive && <span className="absolute top-0 left-4 right-4 h-0.5 rounded-full bg-treebo-teal" />}
             <div className="relative">
@@ -1106,26 +1109,35 @@ export default function App() {
     </div>
   );
 
-  // Bug 2 & 3: chat uses its own flex layout — no fixed positioning, no 100vh
-  const renderChatTab = () => (
+  const renderChatTab = () => {
+    // Fix 6: context-aware quick prompts
+    const dest = tripDetails.destination || 'your destination';
+    const quickPrompts = [
+      `Best food in ${dest}?`,
+      'What should I pack?',
+      `Hidden gems in ${dest}`,
+      'Budget tips for this trip',
+    ];
+    return (
     <div className="flex flex-col flex-1 min-h-0 -mx-5">
       {/* Messages scroll area */}
       <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-5">
         {chatHistory.length === 0 ? (
-          // flex-col with min-h-full so spacer pushes chips to bottom inside overflow-y-auto parent
-          <div className="flex flex-col min-h-full">
-            <div className="flex flex-col items-center pt-8 pb-4 px-2 text-center">
+          // Fix 1: justify-center + gap-6 eliminates dead whitespace — no flex-1 spacer needed
+          <div className="flex flex-col items-center justify-center h-full gap-6 px-4">
+            <div className="flex flex-col items-center text-center">
               <div className="w-14 h-14 rounded-2xl bg-treebo-teal-light flex items-center justify-center mb-3">
                 <Sparkles size={24} className="text-treebo-teal" />
               </div>
               <h3 className="font-display font-semibold text-treebo-text text-[18px]">Treebo AI Assistant</h3>
-              <p className="text-[13px] text-treebo-muted mt-1">Ask me anything about your trip to {tripDetails.destination}.</p>
+              <p className="text-[13px] text-treebo-muted mt-1">
+                Ask me anything about your trip{tripDetails.destination ? ` to ${tripDetails.destination}.` : '.'}
+              </p>
             </div>
-            <div className="flex-1" />
-            <div className="px-0 pb-4 space-y-2">
-              {[`Best food in ${tripDetails.destination}?`, 'What should I pack?', `Hidden gems in ${tripDetails.destination}`, 'Budget tips for this trip'].map((p) => (
+            <div className="w-full space-y-2">
+              {quickPrompts.map((p) => (
                 <button key={p} onClick={() => handleSendMessage(p)}
-                  className="w-full text-left px-4 py-3 rounded-2xl border border-treebo-border bg-white text-[13px] text-treebo-text hover:border-treebo-teal hover:bg-treebo-teal/5 transition-colors">
+                  className="w-full text-left px-4 py-3 rounded-2xl border border-treebo-border bg-white text-[13px] text-treebo-text hover:border-treebo-teal hover:bg-treebo-teal/5 transition-colors active:scale-[0.98]">
                   {p}
                 </button>
               ))}
@@ -1157,24 +1169,36 @@ export default function App() {
         )}
       </div>
 
-      {/* Input bar — in normal flow, not fixed. Sits above bottom nav naturally. */}
-      <div className="flex-shrink-0 px-4 py-3 border-t border-treebo-border bg-treebo-bg/95 backdrop-blur-sm">
+      {/* Fix 2: input bar with iOS safe-area padding so it never hides behind home indicator */}
+      <div
+        className="flex-shrink-0 px-4 pt-3 border-t border-treebo-border bg-treebo-bg/95 backdrop-blur-sm"
+        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+      >
         <div className="flex gap-2">
+          {/* Fix 7: mobile-optimised input attributes */}
           <input
             type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
             placeholder="Ask anything about your trip..."
             className="flex-1 bg-white border border-treebo-border rounded-full px-4 py-3 text-[14px] text-treebo-text placeholder:text-gray-400 focus:outline-none focus:border-treebo-teal transition-all"
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
           />
-          <button onClick={() => handleSendMessage()} className="w-12 h-12 bg-treebo-teal text-white rounded-full flex items-center justify-center shadow-button active:scale-90 transition-all hover:bg-treebo-teal-dark flex-shrink-0">
+          <button
+            onClick={() => handleSendMessage()}
+            disabled={!chatInput.trim() || isTyping}
+            className={`w-12 h-12 bg-treebo-teal text-white rounded-full flex items-center justify-center shadow-button active:scale-90 transition-all hover:bg-treebo-teal-dark flex-shrink-0 ${!chatInput.trim() || isTyping ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             <Send size={18} />
           </button>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   // ─── Auth Screens ────────────────────────────────────────────────────────────
 
@@ -1227,10 +1251,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
-      <div className="w-full max-w-[430px] bg-treebo-bg h-screen h-dvh overflow-hidden relative shadow-xl flex flex-col">
+      <div className="w-full max-w-[430px] bg-treebo-bg overflow-hidden relative shadow-xl flex flex-col" style={{ height: '100dvh' }}>
         <Header user={user} onSignOut={handleSignOut} onShowHistory={() => setActiveTab('history')} />
 
-        <main className={`flex-1 pt-[56px] ${activeTab === 'chat' ? 'overflow-hidden flex flex-col pb-16' : 'px-5 overflow-y-auto no-scrollbar'}`}>
+        <main
+          className={`flex-1 pt-[56px] ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'px-5 overflow-y-auto no-scrollbar'}`}
+          style={activeTab === 'chat' ? { paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' } : undefined}
+        >
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }} className={activeTab === 'chat' ? 'flex-1 min-h-0 flex flex-col' : ''}>
               {activeTab === 'plan' && renderPlanTab()}
