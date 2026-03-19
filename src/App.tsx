@@ -972,15 +972,20 @@ export default function App() {
         <div className="space-y-3">
           {generatedPlan.days?.map((day, idx) => {
             const isOpen = openDay === idx;
+            // Fix 4A: strip emoji characters from activity names
+            const cleanName = (str: string) =>
+              str.replace(/[\u{1F300}-\u{1FFFF}]/gu, '').replace(/[\u{2600}-\u{27FF}]/gu, '').trim();
             return (
-              <div key={idx} className="bg-white border border-treebo-border rounded-2xl overflow-hidden shadow-card">
+              // Fix 6: teal border tint when open
+              <div key={idx} className={`bg-white rounded-2xl shadow-sm overflow-hidden mb-3 transition-colors border ${isOpen ? 'border-treebo-teal/30' : 'border-gray-100'}`}>
                 <button
                   onClick={() => setOpenDay(isOpen ? -1 : idx)}
-                  className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-treebo-tag/30 transition-colors"
+                  className="w-full flex items-center gap-3 p-4 text-left hover:bg-treebo-tag/30 transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-xl bg-treebo-amber text-white flex items-center justify-center font-display font-semibold text-[15px] shadow-button-amber flex-shrink-0">{day.day}</div>
-                  <h3 className="font-display font-semibold text-treebo-text text-[15px] flex-1">{day.label}</h3>
-                  <ChevronDown size={16} className={`text-treebo-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                  {/* Fix 1: teal day badge */}
+                  <div className="w-8 h-8 rounded-full bg-treebo-teal text-white flex items-center justify-center text-sm font-bold flex-shrink-0">{day.day}</div>
+                  <span className="flex-1 font-display font-semibold text-[15px] text-treebo-text">{day.label || `Day ${idx + 1}`}</span>
+                  <ChevronDown size={18} className={`text-treebo-muted transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 <AnimatePresence>
@@ -992,44 +997,71 @@ export default function App() {
                       transition={{ duration: 0.2, ease: 'easeOut' }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 pb-4 space-y-4 border-t border-treebo-border">
+                      <div className="px-4 pb-4 space-y-4 border-t border-gray-100">
                         {(['morning', 'afternoon', 'evening'] as const).map((time) => {
                           const activities = (day[time] as Activity[]) || [];
                           if (!activities.length) return null;
                           return (
-                            <div key={time} className="space-y-2.5 relative pl-4 border-l-2 border-treebo-border ml-2 mt-4">
-                              <div className="absolute -left-[5px] top-[2px] w-2.5 h-2.5 rounded-full bg-treebo-teal" />
-                              <h4 className="text-[10px] font-semibold text-treebo-muted uppercase tracking-wider mb-2">{time}</h4>
+                            <div key={time} className="space-y-2.5 mt-4">
+                              {/* Fix 5: teal section header with divider line */}
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-1.5 h-1.5 rounded-full bg-treebo-teal flex-shrink-0" />
+                                <span className="text-[10px] font-bold tracking-widest text-treebo-teal uppercase">{time}</span>
+                                <div className="flex-1 h-px bg-gray-100" />
+                              </div>
                               {activities.map((act, i) => (
-                                <div key={i} className="bg-treebo-tag/40 p-4 rounded-xl border border-treebo-border space-y-2">
-                                  <div className="flex justify-between items-start gap-2">
-                                    <div className="flex gap-2.5 flex-1">
-                                      <span className="text-xl leading-none mt-0.5">{act.emoji}</span>
-                                      <div className="flex-1 min-w-0">
-                                        <h5 className="font-semibold text-[14px] text-treebo-text leading-snug">{act.name}</h5>
-                                        <p className="text-[12px] text-treebo-muted mt-0.5 leading-relaxed">{act.description}</p>
-                                      </div>
+                                // Fix 4D: clean minimal activity card
+                                <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[14px] font-semibold text-treebo-text leading-snug">
+                                        {cleanName(act.name)}
+                                      </p>
+                                      {act.description && (
+                                        <p className="text-[12px] text-treebo-muted mt-0.5 line-clamp-1">
+                                          {act.description}
+                                        </p>
+                                      )}
                                     </div>
-                                    <span className="text-[11px] font-semibold text-treebo-teal bg-treebo-teal-light px-2 py-0.5 rounded-md flex-shrink-0">₹{act.cost_inr}</span>
+                                    {/* Fix 2: teal cost badge top-right */}
+                                    <div className="flex-shrink-0">
+                                      <span className="text-[11px] font-semibold text-treebo-teal bg-treebo-teal-light px-2 py-0.5 rounded-full">
+                                        {!act.cost_inr || act.cost_inr === 0 ? 'Free' : `₹${act.cost_inr.toLocaleString('en-IN')}`}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-4 text-[11px] text-treebo-muted">
-                                    <div className="flex items-center gap-1"><Clock size={11} /> {act.duration_hours}h</div>
-                                    <div className="flex items-center gap-1"><MapPin size={11} /> {act.distance_from_hotel_km}km away</div>
-                                  </div>
+                                  {/* Fix 4C: metadata row — only show non-zero values */}
+                                  {(act.duration_hours > 0 || act.distance_from_hotel_km > 0) && (
+                                    <div className="flex items-center gap-3 mt-2.5 pt-2.5 border-t border-gray-50">
+                                      {act.duration_hours > 0 && (
+                                        <div className="flex items-center gap-1">
+                                          <Clock size={11} className="text-gray-400" />
+                                          <span className="text-[11px] text-gray-400">{act.duration_hours}h</span>
+                                        </div>
+                                      )}
+                                      {act.distance_from_hotel_km > 0 && (
+                                        <div className="flex items-center gap-1">
+                                          <MapPin size={11} className="text-gray-400" />
+                                          <span className="text-[11px] text-gray-400">{act.distance_from_hotel_km} km away</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
                           );
                         })}
-                        <div onClick={() => setActiveTab('hotels')} className="bg-treebo-amber-light border border-treebo-amber/25 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-treebo-amber/50 transition-colors group mt-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-treebo-amber flex items-center justify-center"><Hotel size={16} className="text-white" /></div>
-                            <div>
-                              <p className="text-[10px] font-semibold text-treebo-amber uppercase tracking-wider">Stay tonight</p>
-                              <p className="text-[13px] font-semibold text-treebo-text mt-0.5">{selectedHotel?.name || filteredHotels[0]?.name || 'Treebo Trend Hotel'}</p>
-                            </div>
+                        {/* Fix 3: "Stay Tonight" card — teal theme */}
+                        <div onClick={() => setActiveTab('hotels')} className="mt-4 flex items-center gap-3 p-4 bg-treebo-teal-light rounded-2xl border border-treebo-teal/20 cursor-pointer hover:border-treebo-teal/40 transition-colors group">
+                          <div className="w-10 h-10 rounded-xl bg-treebo-teal flex items-center justify-center flex-shrink-0">
+                            <Hotel size={16} className="text-white" />
                           </div>
-                          <ArrowRight size={16} className="text-treebo-amber group-hover:translate-x-0.5 transition-transform" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-semibold tracking-wider text-treebo-teal uppercase mb-0.5">Stay Tonight</p>
+                            <p className="text-[14px] font-semibold text-treebo-text leading-snug truncate">{selectedHotel?.name || filteredHotels[0]?.name || 'Treebo Trend Hotel'}</p>
+                          </div>
+                          <ArrowRight size={16} className="text-treebo-teal ml-auto flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </div>
                     </motion.div>
